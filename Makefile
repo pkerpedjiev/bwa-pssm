@@ -2,7 +2,7 @@ CC=			gcc
 CXX=		g++
 #CFLAGS=		-g -Wall 
 #CFLAGS=		-pg -Wall -O2
-CFLAGS=      -O3
+CFLAGS=      -O3 -L/scr/plastilin/pkerp/local/lib
 CXXFLAGS=	$(CFLAGS)
 DFLAGS=		-DHAVE_PTHREAD #-D_FILE_OFFSET_BITS=64
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwtgap.o \
@@ -10,10 +10,10 @@ OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwtgap.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
 			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
 			bwtsw2_chain.o bamlite.o fastmap.o bwtpssm.o seq2pssm.o \
-            pssm.o bwtpssmgap.c bwtge.o lib/libgdsl.a
+            pssm.o bwtpssmgap.c bwtge.o
 PROG=		bwa
 INCLUDES=	
-LIBS=		-lm -lz -lpthread
+LIBS=		-lm -lz -lpthread -lgdsl
 SUBDIRS=	. bwt_gen
 
 .SUFFIXES:.c .o .cc
