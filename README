@@ -1,0 +1,35 @@
+PSSM-BWA Readme
+
+The usage of PSSM-BWA is very similar to that of bwa. Due to some of the
+underlying differences, howerver, the recommended parameters are different.
+Below are common parameter sets to use with particular types of data.
+
+
+** Low quality data **
+
+bwa pssm -z 3.0 -l 18 -k 3 -n 30 -m 2000 index-file pssm-file | bwa samse index-file - pssm-file > out.sam
+
+** Helicos data **
+
+bwa pssm -N -i2 -o5 -O 0.015 -E 0.015 -D 0.03 -m 2000 index-file pssm-file | bwa samse index-file - pssm-file > out.sam
+
+
+** Short explanation of the new parameters **
+
+-z <float>  This options indicates that the pssm threshold will be the maximum possible score - <float> * maximum-mismatch-penalty,
+            where maximum-mismatch-penalty is equal to the difference between the match and mismatch score of the highest quality
+            base found in the read. In other words, we allow the equivalent of <float> high quality mismatches in the alignment.
+
+-y <float>  Similar to -z, except it uses bwa's default mismatch criteria for creating the mismatch allowance. Suppose bwa's
+            method determines that a read of length l should be allowed n mismatches. Then using -y <float> for such a read
+            will be equivalent to using the option -z (n - <float>). This can be useful in files containing reads of variable
+            length.
+
+-O <float>  Specify a probability for gap opens.
+
+-E <float>  Specify a probability for gap extensions.
+
+-D <float>  Specify a probability for deletions.
+
+-m <int>    Indicate the size of the heap for storing partial matches. This is equivalent to the number of recursions allowed in
+            the search tree. Small values lead to fast running times while large ones lead to more sensitivity.

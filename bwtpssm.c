@@ -364,7 +364,7 @@ int bwa_pssm(int argc, char *argv[])
 
     if (optind + 2 > argc) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "Usage:   bwa aln [options] <prefix> <in.fq>\n\n");
+        fprintf(stderr, "Usage:   bwa pssm [options] <prefix> <in.fq>\n\n");
         fprintf(stderr, "Options: -n NUM    max #diff (int) or missing prob under %.2f err rate (float) [%.2f]\n",
                 BWA_AVG_ERR, opt->fnr);
         fprintf(stderr, "         -o INT    maximum number (int) or fraction of gap opens [%d]\n", opt->max_gapo);
