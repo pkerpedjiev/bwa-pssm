@@ -2,8 +2,16 @@ PSSM-BWA Readme
 
 The usage of PSSM-BWA is very similar to that of bwa. Due to some of the
 underlying differences, howerver, the recommended parameters are different.
-Below are common parameter sets to use with particular types of data.
 
+Installation:
+
+PSSM-BWA requires the gdsl library. It can be downloaded from:
+
+http://home.gna.org/gdsl/
+
+Once gdsl is installed, PSSM-BWA can be compiled by simply running 'make'.
+
+Usage:
 
 ** Low quality data **
 
