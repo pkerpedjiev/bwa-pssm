@@ -17,6 +17,8 @@
 #include "seq2pssm.h"
 //#include "bitsandpieces.h"
 
+unsigned char nst_nt4_table[256];
+
 float log2f(float arg);
 // #define DEBUG
 
@@ -218,6 +220,73 @@ float *phred_ascii_quality_scores(int base) {
 }
 
 /*
+ * Load the error model from a file with the following format:
+ *
+ * 
+ * # comments
+ * # Each line has qual score and base followed by 4 scores
+ * # for A, C, G and T. Fields separated by blanks
+ * # Like this
+ * 0 A 0. 0. 0. 0.
+ * 0 C 0. 0. 0. 0.
+ * :
+ * 3 A 1.3 -2.1 -3.1 -2.0
+ * 3 C -1.9 2.0 -2.1 -1.8
+ * :
+ * :
+ * 50 T ..
+ */
+void load_error_model(float *table, const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    char line[1024];
+
+    int index;
+    char base;
+    int base_index;
+
+    float scores[4];
+
+    if (!fp) {
+        fprintf(stderr, "Error model file %s not found.\n", filename);
+        exit(1);
+    }
+    
+    while(fgets(line, 1024, fp) != NULL)
+    {
+        char *pch;
+        int counter = 0;
+
+        if (line[0] == '#')
+            continue;
+        
+        pch = strtok(line, " \t");
+        while (pch != NULL)
+        {
+            int total_index;
+            fprintf(stderr, "counter: %d pch: %s\n", counter, pch);
+            switch(counter) {
+                case 0:
+                    index = atoi(pch);
+                    break;
+                case 1:
+                    base = pch[0];
+                    base_index = nst_nt4_table[base];
+                    break;
+                default:
+                    total_index = index * 16 + base_index * 4 + counter - 2;
+                    //fprintf(stderr, "index: %d base_index: %d counter-2: %d total_index: %d\n", index, base_index, counter-2, total_index);
+                    table[index * 16 + base_index * 4 + counter - 2] = atof(pch);
+            }
+
+            pch = strtok(NULL, " \t");
+            counter++;
+        }
+    }
+
+    fclose(fp);
+}
+
+/*
  * Read qual values in a file with two columns: ASCII code and prob
  * Anything else will fail. Sorry. E.g.:
  * B 0.23456
@@ -262,6 +331,36 @@ float *read_ascii_quality_scores(char *filename) {
 	return errorprob;
 }
 
+
+
+/* 
+ * Make 0'th order PSSM given the scores in the error model.
+ *
+ * Each base quality will have a set of scores associated
+ * with it, and each of these will be added to the matrix.
+ */
+PSSM error_model_to_pssm(ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
+		const float *error_model) {
+
+    PSSM mat;
+    int i, k, q;
+
+    mat = init_matrix(0, len, alphsize+1);
+
+    for (i = 0; i < len; i++) {
+		/* The error prob from the qual ascii code */
+		q = (int)qual[i];
+		if (q<0 || q>=128) {
+			fprintf(stderr,"Weird qual: %d\n%s\n%s",q,seq,qual);
+		}
+
+        for (k = 0; k < alphsize; k++) {
+            mat->scores[mat->offsets[i] + k] = error_model[16 * i + 4 * seq[i] + k];
+        }
+    }
+
+    return mat;
+}
 
 /* Turn quality scores into probabilities for each letter
    and return in an array of size len*(alphsize+1).
@@ -342,8 +441,6 @@ void snp_probs(Probs *P, float *q, float psnp) {
   fprintf(stderr,"snp_probs done\n");
 #endif
 }
-
-
 
 
 
@@ -639,23 +736,29 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
 	}
 	else {
 		// Remove Ns in beginning of sequence:
-        //fprintf(stderr, "alpghsize: %d s->seq[0]: %d\n", alphsize, s->seq[0]);
-		while (nf < s->len && s->seq[nf]>=alphsize) {
-            //fprintf(stderr, "nf: %d s->seq[nf]: %d\n", nf, s->seq[nf]);
-            ++nf;
+		while (nf < s->len && s->seq[nf]>=alphsize) ++nf;
+
+        if (opt->use_error_model) 
+            s->mat = error_model_to_pssm(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, opt->error_lookup);
+        else {
+            P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
+            snp_probs(P, NULL, psnp);
+            
+            s->mat = prob_to_pssm(P, mc);
+            free_probs(P);
         }
-		P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
-		snp_probs(P, NULL, psnp);
-        
-		s->mat = prob_to_pssm(P, mc);
-		free_probs(P);
 		if (s->rseq) {
 			// Remove Ns in beginning of sequence:
 			while (s->rseq[nr]>=alphsize) ++nr;
-			P = qual_to_probs(s->rseq+nr, s->qual+nr, s->len-nr, alphsize, qualprobs);
-			snp_probs(P, NULL, psnp);
-			s->revmat = prob_to_pssm(P, mc);
-			free_probs(P);
+
+            if (opt->use_error_model)
+                s->revmat = error_model_to_pssm(s->rseq+nr, s->qual+nr, s->len-nr, alphsize, opt->error_lookup);
+            else {
+                P = qual_to_probs(s->rseq+nr, s->qual+nr, s->len-nr, alphsize, qualprobs);
+                snp_probs(P, NULL, psnp);
+                s->revmat = prob_to_pssm(P, mc);
+                free_probs(P);
+            }
 		}
 	}
 

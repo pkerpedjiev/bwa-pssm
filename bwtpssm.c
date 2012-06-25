@@ -320,7 +320,7 @@ int bwa_pssm(int argc, char *argv[])
     gap_opt_t *opt;
 
     opt = gap_init_opt();
-    while ((c = getopt(argc, argv, "n:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:q:f:b012IB:")) >= 0) {
+    while ((c = getopt(argc, argv, "n:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:G:q:f:b012IB:")) >= 0) {
         switch (c) {
             case 'n':
                 if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
@@ -335,6 +335,7 @@ int bwa_pssm(int argc, char *argv[])
             case 'O': opt->p_gapo = log2f(atof(optarg)); break;
             case 'E': opt->p_gape = log2f(atof(optarg)); break;
             case 'D': opt->p_del = log2f(atof(optarg)); break;
+            case 'G': load_error_model(opt->error_lookup, optarg); opt->use_error_model=1; break;
             case 'd': opt->max_del_occ = atoi(optarg); break;
             case 'i': opt->indel_end_skip = atoi(optarg); break;
             case 'l': opt->seed_len = atoi(optarg); break;
@@ -378,6 +379,7 @@ int bwa_pssm(int argc, char *argv[])
         fprintf(stderr, "         -M INT    mismatch penalty [%d]\n", opt->s_mm);
         fprintf(stderr, "         -O INT    gap open penalty [%d]\n", opt->s_gapo);
         fprintf(stderr, "         -E INT    gap extension penalty [%d]\n", opt->s_gape);
+        fprintf(stderr, "         -G INT    error model table\n");
         fprintf(stderr, "         -R INT    stop searching when there are >INT equally best hits [%d]\n", opt->max_top2);
         fprintf(stderr, "         -q INT    quality threshold for read trimming down to %dbp [%d]\n", BWA_MIN_RDLEN, opt->trim_qual);
         fprintf(stderr, "         -f FILE   file to write output to instead of stdout\n");

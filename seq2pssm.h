@@ -13,6 +13,8 @@
 
 /* SEQ2PSSM_H_ */
 /* FUNCTION PROTOTYPES BEGIN  ( by funcprototypes.pl ) */
+void load_error_model(float *error_loopup, const char *filename);
+
 Probs *alloc_probs(int len, int alphsize);
 void free_probs(Probs *P);
 void normalize_probs(Probs *P, float pseudocount);

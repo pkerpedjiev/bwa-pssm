@@ -67,7 +67,7 @@ int bwa_index(int argc, char *argv[])
 		fprintf(stderr, "         -p STR    prefix of the index [same as fasta name]\n");
 		fprintf(stderr, "         -c        build color-space index\n\n");
 		fprintf(stderr,	"Warning: `-a bwtsw' does not work for short genomes, while `-a is' and\n");
-		fprintf(stderr, "         `-a div' do not work not for long genomes. Please choose `-a'\n");
+		fprintf(stderr, "         `-a div' does not work not for long genomes. Please choose `-a'\n");
 		fprintf(stderr, "         according to the length of the genome.\n\n");
 		return 1;
 	}

@@ -101,6 +101,8 @@ typedef struct {
 #define BWA_MODE_BAM_READ2  0x100
 #define BWA_MODE_IL13       0x200
 
+#define ERROR_MODEL_LENGTH  128 // Encompases all the possible quality scores and then some
+
 typedef struct {
 	int s_mm, s_gapo, s_gape;
     float p_gapo, p_gape, p_del;
@@ -117,6 +119,8 @@ typedef struct {
     float pssm_ratio_discount;
     float threshold;
     float pssm_seed_ratio;
+    int use_error_model;
+    float error_lookup[ERROR_MODEL_LENGTH * 16]; // 4 bases * 4 bases 
     char pssm_ratio_provided;
 } gap_opt_t;
 
