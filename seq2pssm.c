@@ -263,7 +263,7 @@ void load_error_model(float *table, const char *filename) {
         while (pch != NULL)
         {
             int total_index;
-            fprintf(stderr, "counter: %d pch: %s\n", counter, pch);
+            //fprintf(stderr, "counter: %d pch: %s\n", counter, pch);
             switch(counter) {
                 case 0:
                     index = atoi(pch);

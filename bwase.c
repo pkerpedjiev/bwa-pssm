@@ -187,14 +187,16 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 /* Ajdust the score of an alignment according to a prior
  * alignment probability. */
 void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior) {
-    float e = exp2(seq->best_pssm_score);
-    float L = (float)bns->l_pac;
-    float P = prior;
-    float p = seq->posterior_prob;
-    float new_pp;
+    double e = exp2(seq->best_pssm_score);
+    double L = (double)bns->l_pac;
+    double P = prior;
+    double p = seq->posterior_prob;
+    double new_pp;
 
     new_pp = e / ((e / P) + L * ((1 - P) / P));
     seq->posterior_prob = new_pp;
+
+    //fprintf(stderr, "best_score: %f e: %f L: %f P: %f p: %f new_pp: %f\n", seq->best_pssm_score, e, L, P, p, new_pp);
 }
 
 void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
