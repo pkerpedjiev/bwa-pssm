@@ -380,6 +380,7 @@ int bwa_pssm(int argc, char *argv[])
         fprintf(stderr, "         -M INT    mismatch penalty [%d]\n", opt->s_mm);
         fprintf(stderr, "         -O INT    gap open penalty [%d]\n", opt->s_gapo);
         fprintf(stderr, "         -E INT    gap extension penalty [%d]\n", opt->s_gape);
+        fprintf(stderr, "         -P INT    posterior probability of an alignment [%f]\n", opt->prior);
         fprintf(stderr, "         -G INT    error model table\n");
         fprintf(stderr, "         -R INT    stop searching when there are >INT equally best hits [%d]\n", opt->max_top2);
         fprintf(stderr, "         -q INT    quality threshold for read trimming down to %dbp [%d]\n", BWA_MIN_RDLEN, opt->trim_qual);
@@ -396,6 +397,12 @@ int bwa_pssm(int argc, char *argv[])
         fprintf(stderr, "\n");
         return 1;
     }
+
+    if (opt->prior > 1.0 || opt->prior <= 0) {
+        fprintf(stderr, "Invalid prior value of %f. Using 0.8 instead.\n", opt->prior);
+        opt->prior = 0.8;
+    }
+
     if (opt->fnr > 0.0) {
         int i, k;
         for (i = 17, k = 0; i <= 250; ++i) {
