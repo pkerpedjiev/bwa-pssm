@@ -122,6 +122,7 @@ typedef struct {
     int use_error_model;
     float error_lookup[ERROR_MODEL_LENGTH * 16]; // 4 bases * 4 bases 
     char pssm_ratio_provided;
+    float prior;
 } gap_opt_t;
 
 #define BWA_PET_STD   1

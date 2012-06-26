@@ -37,6 +37,7 @@ gap_opt_t *gap_init_opt()
     o->pssm_ratio_provided=0;
     o->pssm_ratio_discount=0.0;
     o->use_error_model=0;
+    o->prior = 0.8;
     return o;
 }
 
