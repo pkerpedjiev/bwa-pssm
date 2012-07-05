@@ -640,7 +640,8 @@ Probs *markov_chain(bwtint_t *counts, int alphlen) {
   int i;
   mc->counts = malloc(alphlen * sizeof(int));
   for (i = 0; i < alphlen; i++) { 
-    mc->counts[i] = counts[i+1] - counts[i];
+    //mc->counts[i] = counts[i+1] - counts[i];
+    mc->counts[i] = counts[alphlen] / alphlen;
   }
   Counts2markov_chain(mc);
   return mc;

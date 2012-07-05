@@ -193,7 +193,7 @@ void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior) {
     double p = seq->posterior_prob;
     double new_pp;
 
-    new_pp = e / ((e / P) + L * ((1 - P) / P));
+    new_pp = e / ((e / p) + L * ((1 - P) / P));
     seq->posterior_prob = new_pp;
 
     //fprintf(stderr, "best_score: %f e: %f L: %f P: %f p: %f new_pp: %f\n", seq->best_pssm_score, e, L, P, p, new_pp);
