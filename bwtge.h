@@ -12,6 +12,8 @@ struct pssm_entry_st { // recursion stack
 	u_int32_t n_mm:8, n_gapo:8, n_gape:8, state:2, n_seed_mm:6;
 	bwtint_t k, l; // (k,l) is the SA region of [i,n-1]
     float pssm_score;
+    float score_offset; // the difference between the best_possible score and the current score
+                        // so pssm_score[i] = mat.be[i] + score_offset
 	int last_diff_pos;
     struct pssm_entry_st *next;
     struct pssm_entry_st *prev;
