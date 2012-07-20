@@ -262,6 +262,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             break;
         }
 
+         //fprintf(stderr, "pssm #1 id:%d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%3.3f, **%3.3f**, %3.3f, %3.3f]\n", mat->id, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm,     e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
 
         m = max_diff - (e.n_mm + e.n_gapo);
         if (i == mat->length)
@@ -378,7 +379,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                     if (curr_score - deletion_penalty > mat->thresholds[i]) { 
                         if (score > min_score) {
                             for (j = 0; j != 4; ++j) {
-                                float score;
                                 k = bwt->L2[j] + cnt_k[j] + 1;
                                 l = bwt->L2[j] + cnt_l[j];
                                 if (k <= l) 
