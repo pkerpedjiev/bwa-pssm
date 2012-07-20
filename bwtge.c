@@ -55,7 +55,7 @@ extern long int
 compare_pssm_entries (gdsl_element_t e1, void* e2)
 {
     //return 1;
-    return ((pssm_entry_t *) e1)->pssm_score - ((pssm_entry_t *) e2)->pssm_score;
+    return ((pssm_entry_t *) e1)->score_offset - ((pssm_entry_t *) e2)->score_offset;
 }
 
 

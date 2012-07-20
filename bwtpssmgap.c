@@ -204,12 +204,18 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
 
         k = e.k; l = e.l; // SA interval
         a = e.info>>20&1; i = e.info&0xffff; // strand, length
-        if (!(opt->mode & BWA_MODE_NONSTOP) && e.info>>21 > best_score + opt->s_mm) {
-            //fprintf(stderr, "breakx\n");
+
+        //fprintf(stderr, "best_found: %f mat->be[mat->length-1]-e.score_offset: %f\n", best_found, mat->be[mat->length-1] + e.score_offset);
+        if (!(opt->mode & BWA_MODE_NONSTOP) && best_found > mat->be[mat->length-1] + e.score_offset) {
             break;
         }
+
+
         m = max_diff - (e.n_mm + e.n_gapo);
-        curr_score = mat->be[mat->length-1] - mat->be[i] + e.score_offset;
+        if (i == mat->length)
+            curr_score = 0;
+        else
+            curr_score = mat->be[mat->length-1] - mat->be[i] + e.score_offset;
 
         if (opt->mode & BWA_MODE_GAPE) m -= e.n_gape;
         if (m < 0) {
@@ -220,8 +226,9 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             if (opt->mode & BWA_MODE_GAPE) m_seed -= e.n_gape;
         }
 
-        fprintf(stderr, "#1 id:%d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%.3f,%.3f,%.3f]\n", mat->id, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm, e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, mat->thresholds[i], mat->bi[i]);
+        fprintf(stderr, "pssm #1 id:%d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%3.3f, **%3.3f**, %3.3f, %3.3f]\n", mat->id, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm, e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
         //oogabooga
+        //
         if (debug_print)
         if (i > 0 && m < width[i-1].bid) {
             //fprintf(stderr, "continue2\n");

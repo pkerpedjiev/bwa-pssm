@@ -22,7 +22,7 @@ gap_opt_t *gap_init_opt()
     o = (gap_opt_t*)calloc(1, sizeof(gap_opt_t));
     /* IMPORTANT: s_mm*10 should be about the average base error
        rate. Voilating this requirement will break pairing! */
-    o->p_gapo = -11; o->p_gape=-11; o->p_del=-11;
+    o->p_gapo = -17; o->p_gape=-17; o->p_del=-17;
     o->s_mm = 3; o->s_gapo = 11; o->s_gape = 4;
     o->max_diff = -1; o->max_gapo = 1; o->max_gape = 6;
     o->indel_end_skip = 5; o->max_del_occ = 10; o->max_entries = 2000000;
