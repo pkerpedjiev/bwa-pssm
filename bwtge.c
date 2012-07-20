@@ -55,7 +55,16 @@ extern long int
 compare_pssm_entries (gdsl_element_t e1, void* e2)
 {
     //return 1;
-    return ((pssm_entry_t *) e1)->score_offset - ((pssm_entry_t *) e2)->score_offset;
+    float val1 =  ((pssm_entry_t *) e1)->score_offset;
+    float val2 =  ((pssm_entry_t *) e2)->score_offset;
+
+    if (val1 < val2)
+        return -1;
+    else {
+        if (val2 < val1)
+            return 1;
+    }
+   return 0 ;
 }
 
 

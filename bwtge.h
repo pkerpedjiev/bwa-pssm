@@ -2,7 +2,8 @@
 #include <assert.h>
 #include "main.h"
 #include "bwt.h"
-#include "gdsl/gdsl_heap.h"
+
+#include "gdsl/gdsl_interval_heap.h"
 
 #ifndef _BWTGE_H_
 #define _BWTGE_H_
@@ -30,7 +31,7 @@ typedef struct {
     pssm_entry_t *last_empty;  
     pssm_entry_t *first_busy;
     pssm_entry_t *last_busy;
-    gdsl_heap_t heap;
+    gdsl_interval_heap_t heap;
 
     //the number of empty entries
     int empty_left;
