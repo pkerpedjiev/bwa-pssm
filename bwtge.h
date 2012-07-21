@@ -31,6 +31,10 @@ typedef struct {
     pssm_entry_t *last_empty;  
     pssm_entry_t *first_busy;
     pssm_entry_t *last_busy;
+
+    pssm_entry_t *to_insert[10];
+    int num_to_insert;
+
     gdsl_interval_heap_t heap;
 
     //the number of empty entries

@@ -25,9 +25,10 @@ pssm_heap_t *pssm_init_heap(int max_mm, int max_gapo, int max_gape, const gap_op
 
     gp_heap->size = opt->max_entries;
     gp_heap->entry_list = (pssm_entry_t *)malloc(gp_heap->size * sizeof(pssm_entry_t));
+    gp_heap->num_to_insert = 0;
 
     gp_heap->heap = gdsl_interval_heap_alloc ("H", alloc_pssm_entry, free_pssm_entry, compare_pssm_entries);
-    gdsl_interval_heap_set_max_size(gp_heap->heap, gp_heap->size-10);
+    gdsl_interval_heap_set_max_size(gp_heap->heap, gp_heap->size-15);
 
     gdsl_interval_heap_flush( gp_heap->heap);
 
@@ -72,37 +73,50 @@ static void print_empty(pssm_heap_t *gp_heap)
     fprintf(stderr, "\n");
 }
 
-static void remove_from_empty_list(pssm_heap_t *gp_heap, pssm_entry_t *p)
+static void check_empty_integrity(pssm_heap_t *gp_heap)
 {
-    p->prev->next = p->next;
-    p->next->prev = p->prev;
-
-    gp_heap->last_empty->next = p;
-    gp_heap->last_empty = p;
-    gp_heap->empty_left++;
-}
-
-static inline pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
-{
-
     pssm_entry_t *p;
-    pssm_entry_t *last_busy = gp_heap->last_busy;
-    /*
+
     int count = 1;
 
     //fprintf(stderr, "update_heap: gp_heap->first_empty: %x gp_heap->last_empty: %x\n", gp_heap->first_empty, gp_heap->last_empty);
 
     p = gp_heap->first_empty;
     while (p != gp_heap->last_empty) {
+        //fprintf(stderr, "%x ", p);
         p  = p->next;
         count++;
     }
+    //fprintf(stderr, "%x ", p);
+    //fprintf(stderr, "\n");
 
     fprintf(stderr, "count: %d, empty left: %d\n", count, gp_heap->empty_left);
     //print_empty(gp_heap);
+    //
     assert(count == gp_heap->empty_left);
     assert(gp_heap->first_empty != gp_heap->last_empty);
-    */
+}
+
+static void remove_from_empty_list(pssm_heap_t *gp_heap, pssm_entry_t *p)
+{
+    //fprintf(stderr, "returning to empty list %x\n", p);
+
+    p->prev->next = p->next;
+    p->next->prev = p->prev;
+
+    gp_heap->last_empty->next = p;
+    gp_heap->last_empty = p;
+    gp_heap->empty_left++;
+
+    //check_empty_integrity(gp_heap);
+}
+
+static inline pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
+{
+
+    pssm_entry_t *last_busy = gp_heap->last_busy;
+    pssm_entry_t *p;
+
 
     // take an entry from the empty list
     p = gp_heap->first_empty;
@@ -114,6 +128,9 @@ static inline pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
     p->prev = last_busy->prev;
     p->next = last_busy;
     last_busy->prev = p;
+
+        //fprintf(stderr, "taking from empty list: %x\n", p);
+    //check_empty_integrity(gp_heap);
 
     return p;
 }
@@ -139,10 +156,33 @@ static void gap_push(pssm_heap_t *gp_heap, int id, int a, int i, bwtint_t k, bwt
     //fprintf(stderr, "inserting score: %d\n", score_offset);
     //fprintf(stderr, "score: %f &p->score_offset: %x (p): %x p+n: %x\n", *(int *)(((void *)p) + 28), &p->score_offset, p, ((void *)p) + 28);
     //fprintf(stderr, "a - b: %d\n", (int)&p->score_offset - (int)p);
+    //
+
+    gp_heap->to_insert[gp_heap->num_to_insert++] = p;
+    /*
     p1 = gdsl_interval_heap_insert(gp_heap->heap, (void *)p);
     //gdsl_raw_heap_dump(p);
     if (p1 != NULL)
         remove_from_empty_list(gp_heap, p1);
+        */
+}
+
+static void gap_finish_push(pssm_heap_t *gp_heap) {
+    int i;
+    pssm_entry_t *p1;
+
+    //fprintf(stderr, "finish pushing: %d\n", gp_heap->num_to_insert);
+    for (i = 0; i < gp_heap->num_to_insert; i++) {
+        p1 = NULL;
+        //fprintf(stderr, "inserting: %x score: %d\n", gp_heap->to_insert[i], gp_heap->to_insert[i]->score_offset);
+        p1 = gdsl_interval_heap_insert(gp_heap->heap, gp_heap->to_insert[i]);
+        if (p1 != NULL) {
+            //fprintf(stderr, "removing %x score: %d\n", p1, p1->score_offset);
+            remove_from_empty_list(gp_heap, p1);
+        }
+    }
+
+    gp_heap->num_to_insert=0;
 }
 
 static void gap_pop(pssm_heap_t *gp_heap, int id, pssm_entry_t *e)
@@ -236,6 +276,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
 
     gap_reset_heap(gp_heap); // reset heap
     gap_push(gp_heap, mat->id, 0, len, 0, bwt->seq_len, 0, 0, 0, 0, 0, opt, 0.0, 0.0);
+    gap_finish_push(gp_heap);
 
     //the most entries that can be pushed onto the heap is at most 7:
     //one match, three mismatches, open, extension, deletion
@@ -456,6 +497,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             }
         }
         //fprintf(stderr, "id: %d gp_heap->empty_left: %d gp_heap->size-2: %d\n", mat->id, gp_heap->empty_left , (gp_heap->size - 2));
+        gap_finish_push(gp_heap);
     }
 
     *_n_aln = n_aln;
