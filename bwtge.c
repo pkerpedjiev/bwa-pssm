@@ -51,23 +51,20 @@ free_pssm_entry (gdsl_element_t e)
     //free (e);
 }
 
+#define bfs
+
 extern long int
-compare_pssm_entries (gdsl_element_t ge1, void* ge2)
+compare_pssm_entries (gdsl_element_t e1, void* e2)
 {
-    //return 1;
-    int bfs = 0;
     float val1, val2;
 
-    pssm_entry_t *e1 = (pssm_entry_t *)ge1;
-    pssm_entry_t *e2 = (pssm_entry_t *)ge2;
-
-    if (bfs) {
+#ifdef bfs
         val1 =  ((pssm_entry_t *) e1)->score_offset;
         val2 =  ((pssm_entry_t *) e2)->score_offset;
-    } else {
+#else
         val1 =  ((pssm_entry_t *) e1)->pssm_score;
         val2 =  ((pssm_entry_t *) e2)->pssm_score;
-    }
+#endif
 
     if (val1 < val2)
         return -1;
@@ -75,14 +72,15 @@ compare_pssm_entries (gdsl_element_t ge1, void* ge2)
         if (val2 < val1)
             return 1;
     }
+    return 0;
 
-    if (bfs) {
+#ifdef bfs
         val1 =  ((pssm_entry_t *) e1)->pssm_score;
         val2 =  ((pssm_entry_t *) e2)->pssm_score;
-    } else {
+#else
         val1 =  ((pssm_entry_t *) e1)->score_offset;
         val2 =  ((pssm_entry_t *) e2)->score_offset;
-    }
+#endif
 
     //fprintf(stderr, "val1: %f val2: %f\n", val1, val2);
     if (val1 < val2)

@@ -71,12 +71,11 @@ static void print_empty(pssm_heap_t *gp_heap)
     fprintf(stderr, "\n");
 }
 
-static pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
+static inline pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
 {
 
     pssm_entry_t *p;
     pssm_entry_t *last_busy = gp_heap->last_busy;
-    int count = 1;
 
     //fprintf(stderr, "update_heap: gp_heap->first_empty: %x gp_heap->last_empty: %x\n", gp_heap->first_empty, gp_heap->last_empty);
 
@@ -148,7 +147,7 @@ static void gap_pop(pssm_heap_t *gp_heap, int id, pssm_entry_t *e)
     gp_heap->num_busy--;
 }
 
-static inline float gap_destroy_min(pssm_heap_t *gp_heap) {
+static float gap_destroy_min(pssm_heap_t *gp_heap) {
 
     pssm_entry_t *p = (pssm_entry_t *)gdsl_interval_heap_remove_min (gp_heap->heap);
     //print_empty(gp_heap);
@@ -172,6 +171,7 @@ static inline float gap_destroy_min(pssm_heap_t *gp_heap) {
 static void gap_reset_heap(pssm_heap_t *gp_heap)
 {
     gdsl_interval_heap_flush( gp_heap->heap);
+
     if (gp_heap->first_busy->next != gp_heap->last_busy) {
         gp_heap->last_empty->next = gp_heap->first_busy->next;
         gp_heap->last_empty = gp_heap->last_busy->prev;
@@ -244,6 +244,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         int a, i, m, m_seed = 0, allow_diff, allow_M, tmp;
         bwtint_t k, l, cnt_k[4], cnt_l[4], occ;
         float curr_score;
+        float curr_threshold;
         min_score = -DBL_MAX;
 
         g_visited++;
@@ -354,6 +355,8 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         occ = l - k + 1;
         // test whether diff is allowed
         allow_diff = allow_M = 1;
+        curr_threshold = mat->thresholds[i];
+
         if (i > 0) {
             int ii = i - (len - opt->seed_len);
             if (width[i-1].bid > m-1) allow_diff = 0;
@@ -373,48 +376,40 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                         float score = e.score_offset - gap_open_penalty;
 
                         // insertion
-                        if (score > min_score) {
-                            if (curr_score - gap_open_penalty > mat->thresholds[i])  {
-                                    gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_I, 1, opt, curr_score - gap_open_penalty, score);
-                            }
+                        if (curr_score - gap_open_penalty > curr_threshold & score > min_score)  {
+                                gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_I, 1, opt, curr_score - gap_open_penalty, score);
                         }
 
                         score = e.score_offset - deletion_penalty;
                             // deletion
-                        if (curr_score - deletion_penalty > mat->thresholds[i]) { 
-                            if (score > min_score) {
-                                for (j = 0; j != 4; ++j) {
-                                    k = bwt->L2[j] + cnt_k[j] + 1;
-                                    l = bwt->L2[j] + cnt_l[j];
-                                    if (k <= l) 
-                                        gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_D, 1, opt, curr_score - deletion_penalty, score);
-                                }
+                        if (curr_score - deletion_penalty > curr_threshold && score > min_score) { 
+                            for (j = 0; j != 4; ++j) {
+                                k = bwt->L2[j] + cnt_k[j] + 1;
+                                l = bwt->L2[j] + cnt_l[j];
+                                if (k <= l) 
+                                    gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_D, 1, opt, curr_score - deletion_penalty, score);
                             }
                         }
                     }
                     break;
                 case STATE_I: //extension of an insertion
-                    score = e.score_offset - gap_extension_penalty;
                     if (e.n_gape < opt->max_gape) { // gap extention is allowed
-                        if (score > min_score) {
-                            if (curr_score - gap_extension_penalty > mat->thresholds[i]) {
+                            score = e.score_offset - gap_extension_penalty;
+                            if (curr_score - gap_extension_penalty > curr_threshold && score > min_score) {
                                 gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_I, 1, opt, curr_score - gap_extension_penalty, score);
-                            }
                         }
                     }
                     break;
                 case STATE_D: //extension of a deletion
-                    score = e.score_offset - gap_extension_penalty;
-                    if (score > min_score) {
-                        if (e.n_gape < opt->max_gape) { // gap extention is allowed
-                            if (e.n_gape + e.n_gapo < max_diff || occ < opt->max_del_occ) {
-                                if (curr_score - gap_extension_penalty > mat->thresholds[i]) {
-                                    for (j = 0; j != 4; ++j) {
-                                        k = bwt->L2[j] + cnt_k[j] + 1;
-                                        l = bwt->L2[j] + cnt_l[j];
-                                        
-                                        if (k <= l) gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_D, 1, opt, curr_score - gap_extension_penalty, score);
-                                    }
+                    if (e.n_gape < opt->max_gape) { // gap extention is allowed
+                        if (e.n_gape + e.n_gapo < max_diff || occ < opt->max_del_occ) {
+                            score = e.score_offset - gap_extension_penalty;
+                            if (curr_score - gap_extension_penalty > curr_threshold && score > min_score) {
+                                for (j = 0; j != 4; ++j) {
+                                    k = bwt->L2[j] + cnt_k[j] + 1;
+                                    l = bwt->L2[j] + cnt_l[j];
+                                    
+                                    if (k <= l) gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_D, 1, opt, curr_score - gap_extension_penalty, score);
                                 }
                             }
                         }
@@ -425,22 +420,22 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
 
         // mismatches
         if (allow_diff && allow_M) { // mismatch is allowed
+            float some_score = -mat->be[i] + mat->be[i-1] + e.score_offset;
             for (j = 4; j >= 1; --j) {
                 ubyte_t c = (seq[i] + j) & 3;
                 int is_mm = (j != 4 || seq[i] > 3);
                 float base_score = get_score_fast(mat, &c, i);
-                float score = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
+                float score = some_score + base_score;
+                //float score = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
                 
-                if (score > min_score) {
-                    if (curr_score + base_score < mat->thresholds[i])  {
-                        continue;
-                    }
+                if (curr_score + base_score < curr_threshold && score < min_score)  {
+                    continue;
+                }
 
-                    k = bwt->L2[c] + cnt_k[c] + 1;
-                    l = bwt->L2[c] + cnt_l[c];
-                    if (k <= l) {
-                        gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm + is_mm, e.n_gapo, e.n_gape, STATE_M, is_mm, opt, curr_score + base_score, score);
-                    }
+                k = bwt->L2[c] + cnt_k[c] + 1;
+                l = bwt->L2[c] + cnt_l[c];
+                if (k <= l) {
+                    gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm + is_mm, e.n_gapo, e.n_gape, STATE_M, is_mm, opt, curr_score + base_score, score);
                 }
             }
         } else if (seq[i] < 4) { // try exact match only

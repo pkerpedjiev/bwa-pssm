@@ -666,7 +666,7 @@ void set_thresholds(PSSM mat, const gap_opt_t *opt)
             if (score1 > best_score)
                 best_score = score1;
 
-            for (k = j; k < 4; k++) {
+            for (k = j + 1; k < 4; k++) {
                 float score2 = get_score_fast(mat, &k, i);
                 drop = score1 - score2;
                 if (drop < 0)
@@ -694,11 +694,6 @@ void set_thresholds(PSSM mat, const gap_opt_t *opt)
         calc_and_set_reverse_thresholds(mat, get_length(mat) - opt->seed_len, get_length(mat), seed_best_score - opt->pssm_seed_ratio * biggest_drop);
         //set_length(mat, len);
     }
-
-    //calc_and_set_reverse_thresholds(mat, total_best_score - opt->pssm_ratio
-    //printThresholds(mat);
-
-    //fprintf(stderr, "total_best_score: %f biggest_drop: %f\n", total_best_score, biggest_drop);
  }
 
 
@@ -724,7 +719,7 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
 
 	if (scoretype==0) {
 		s->mat = string_to_pssm(s->seq, s->len, alphsize, sc_match, sc_mismatch, sc_wild);
-		if (s->rseq) s->revmat = string_to_pssm(s->rseq, s->len, alphsize, sc_match, sc_mismatch, sc_wild);
+		//if (s->rseq) s->revmat = string_to_pssm(s->rseq, s->len, alphsize, sc_match, sc_mismatch, sc_wild);
 	}
 	else if (scoretype==MATRIX_TYPE) {
 		P = alloc_probs(s->len,alphsize);
@@ -748,26 +743,9 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
             s->mat = prob_to_pssm(P, mc);
             free_probs(P);
         }
-		if (s->rseq) {
-			// Remove Ns in beginning of sequence:
-			while (s->rseq[nr]>=alphsize) ++nr;
-
-            if (opt->use_error_model)
-                s->revmat = error_model_to_pssm(s->rseq+nr, s->qual+nr, s->len-nr, alphsize, opt->error_lookup);
-            else {
-                P = qual_to_probs(s->rseq+nr, s->qual+nr, s->len-nr, alphsize, qualprobs);
-                snp_probs(P, NULL, psnp);
-                s->revmat = prob_to_pssm(P, mc);
-                free_probs(P);
-            }
-		}
 	}
 
-    set_thresholds(s->mat, opt);
-    set_thresholds(s->revmat, opt);
-
-    //printThresholds(s->mat);
-
+    //set_thresholds(s->mat, opt);
 	return nf+nr;
 }
 
