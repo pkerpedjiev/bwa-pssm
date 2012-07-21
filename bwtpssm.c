@@ -58,7 +58,7 @@ double calc_min_drop_at_pos(PSSM mat, int pos) {
  * This that is calculate the difference between best_score[i] - 2nd_best_score[i]
  * for each start <= i <= n
  */
-float calc_min_drop(float *min_drops, int start, int end) {
+float calc_min_drop(int *min_drops, int start, int end) {
     int i;
     double min_drop = DBL_MAX;
 
@@ -78,7 +78,7 @@ float calc_min_drop(float *min_drops, int start, int end) {
 
 
 // width must be filled as zero
-static int bwt_cal_width(const bwt_t *bwt, int len, const ubyte_t *str, float *min_drops, bwt_width_t *width)
+static int bwt_cal_width(const bwt_t *bwt, int len, const ubyte_t *str, int *min_drops, bwt_width_t *width)
 {   
     bwtint_t k, l, ok, ol;
     int i, bid, start = 0;
@@ -118,7 +118,7 @@ void bwa_cal_pssm_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *s
 {
     int i, j, max_l = 0, max_len;
     bwt_width_t *w, *seed_w;
-    float *min_drops;
+    int *min_drops;
     gap_opt_t local_opt = *opt;
     pssm_heap_t *gp_heap;
 

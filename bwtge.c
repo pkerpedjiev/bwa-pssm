@@ -56,7 +56,9 @@ free_pssm_entry (gdsl_element_t e)
 extern long int
 compare_pssm_entries (gdsl_element_t e1, void* e2)
 {
-    float val1, val2;
+    return ((pssm_entry_t *) e1)->score_offset - ((pssm_entry_t *) e2)->score_offset;
+    //return ((pssm_entry_t *) e2)->score_offset - ((pssm_entry_t *) e1)->score_offset;
+    int val1, val2;
 
 #ifdef bfs
         val1 =  ((pssm_entry_t *) e1)->score_offset;

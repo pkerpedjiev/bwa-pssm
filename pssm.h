@@ -35,12 +35,12 @@ int id;
   int alphabet_size;
   char *alphabet;
   char *alphabet_indexes;
-  float *scores;
+  int *scores;
   int *offsets; //[MAXPSSMSIZE+1];
-  float *thresholds; //[MAXPSSMSIZE];
-  float *saved_scores; //e[MAXPSSMSIZE+1];
-  float *bi; //best inexact match score
-  float *be; //best exact match score
+  int *thresholds; //[MAXPSSMSIZE];
+  int *saved_scores; //e[MAXPSSMSIZE+1];
+  int *bi; //best inexact match score
+  int *be; //best exact match score
   int maxHits;
 };
 
@@ -48,23 +48,23 @@ typedef struct PSSM* PSSM;
 
 // Mutators
 PSSM init_matrix(int order, int length, int alphabetSize);
-PSSM init_matrix_score(int order, int length, int alphabetSize, float *scores, int nScores, float threshold);
+PSSM init_matrix_score(int order, int length, int alphabetSize, int *scores, int nScores, int threshold);
 void release_matrix(PSSM pssm);
-float maximum_score(PSSM pssm, int pos);
+int maximum_score(PSSM pssm, int pos);
 void calc_and_set_offsets(PSSM pssm, int order, int length, int alphabetSize);
-void calc_and_set_thresholds(PSSM pssm, float threshold);
-void calc_and_set_reverse_thresholds(PSSM mat, int start, int end, float threshold);
-void set_score(PSSM pssm, const unsigned char *letters, int pos, float score);
+void calc_and_set_thresholds(PSSM pssm, int threshold);
+void calc_and_set_reverse_thresholds(PSSM mat, int start, int end, int threshold);
+void set_score(PSSM pssm, const unsigned char *letters, int pos, int score);
 static inline void set_length(PSSM pssm, int length) { pssm->length=length; }
 void print_horizontalPSSM(PSSM pssm);
 void complement_pssm(PSSM mat);
 
 // Acsessors
-float get_score(PSSM pssm, const ubyte_t *baseLetter, int pos);
-float get_threshold(PSSM pssm, int pos);
-float get_global_threshold(PSSM pssm);
+int get_score(PSSM pssm, const ubyte_t *baseLetter, int pos);
+int get_threshold(PSSM pssm, int pos);
+int get_global_threshold(PSSM pssm);
 int get_length(PSSM pssm);
-void calculate_reverse_best_inexact(PSSM mat, float *min_drops);
+void calculate_reverse_best_inexact(PSSM mat, int *min_drops);
 void calculate_reverse_best_exact(PSSM mat);
 
 // Fast accessors

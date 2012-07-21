@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <float.h>
 #include <math.h>
+#include <limits.h>
 
 #include "bwtaln.h"
 #include "pssm.h"
@@ -128,13 +129,13 @@ PSSM string_to_pssm(ubyte_t *seq, int len, int alphsize, float match, float mism
 			float wcscore) {
   PSSM mat;
   int i, j, nScores;
-  float *scores, *base;
+  int *scores, *base;
 
   nScores = len*(alphsize+1);
 
   /* initialize scores to mismatch */
-  base = scores = (float *)malloc(nScores*sizeof(float));
-  for (i=0; i<len; ++i) for (j=0; j<=alphsize; ++j) *(scores++) = mismatch;
+  base = scores = (int *)malloc(nScores*sizeof(int));
+  for (i=0; i<len; ++i) for (j=0; j<=alphsize; ++j) *(scores++) = (int)(1000 * mismatch);
 
   /* Score for wildcards in genome */
   scores = base;
@@ -355,7 +356,7 @@ PSSM error_model_to_pssm(ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
 		}
 
         for (k = 0; k < alphsize; k++) {
-            mat->scores[mat->offsets[i] + k] = error_model[16 * i + 4 * seq[i] + k];
+            mat->scores[mat->offsets[i] + k] = (int) (1000 * error_model[16 * i + 4 * seq[i] + k]);
         }
     }
 
@@ -461,7 +462,8 @@ void snp_probs(Probs *P, float *q, float psnp) {
 PSSM prob_to_pssm(Probs *P, Probs *mc) {
   PSSM mat;
   int i, j, N, order=0;
-  float *scores, *prob, pflat;
+  int *scores;
+  float *prob, pflat;
   float *background, bg[256];
 
   if (mc) order = mc->order;
@@ -475,7 +477,7 @@ PSSM prob_to_pssm(Probs *P, Probs *mc) {
       fprintf(stderr,"No MC chain supplied for n-th order matrix\n");
       return NULL;
     }
-    for (i=0; i<mat->offsets[order]; ++i) scores[i] = 0.;
+    for (i=0; i<mat->offsets[order]; ++i) scores[i] = 0;
   }
   if (!mc) {
     pflat = log2f(1.0/P->alphsize);
@@ -491,7 +493,7 @@ PSSM prob_to_pssm(Probs *P, Probs *mc) {
     scores = mat->scores+mat->offsets[i+order];
     N = mat->offsets[i+order+1] - mat->offsets[i+order];
     for (j=0; j<N; ++j) {
-      scores[j]= log2f(prob[j%(P->alphsize+1)]) - background[j];
+      scores[j]= (int)(1000 * (log2f(prob[j%(P->alphsize+1)]) - background[j]));
     }
     /* Pointer to the appropriate probabilities */
     prob += P->alphsize+1;
@@ -502,11 +504,11 @@ PSSM prob_to_pssm(Probs *P, Probs *mc) {
 
 
 /* Calculate the maximum possible score for a PSSM */
-float highest_scores(PSSM mat) {
+int highest_scores(PSSM mat) {
   int i, j, N, max;
   int order = mat->order;
-  float hscore;
-  float *scores = mat->scores;
+  int hscore;
+  int *scores = mat->scores;
 
   hscore=0.;
   for (i=order; i<mat->length; ++i) {
@@ -527,12 +529,12 @@ float highest_scores(PSSM mat) {
 /* Set matrix threshold such that at most M mismatches are allowed.
    Finds the M cheapest non-consensus scores and calculates threshold.
 */
-float mismatch_threshold(PSSM mat, int M) {
+int mismatch_threshold(PSSM mat, int M) {
 	int i, j, k, N, cheapest[MAXPSSMSIZE], max[2];
 	int order = mat->order;
-	float scorediff[MAXPSSMSIZE], t, hscore;
-	float *scores = mat->scores;
-	const float infty = 1.e-100;
+	int scorediff[MAXPSSMSIZE], t, hscore;
+	int *scores = mat->scores;
+	const int infty = 1.e-100;
 
 	hscore = 0.;
 	for (i = 0; i < mat->length; ++i)
@@ -652,22 +654,22 @@ void set_thresholds(PSSM mat, const gap_opt_t *opt)
  {
     int i, len;
     ubyte_t j, k;
-    float biggest_drop = -DBL_MAX;
-    float best_score, total_best_score = 0.0;
-    float seed_best_score = -1.0;
-    float drop;
+    int biggest_drop = -INT_MAX;
+    int best_score, total_best_score = 0.0;
+    int seed_best_score = -1.0;
+    int drop;
 
     for (i = 0; i < get_length_fast(mat); i++) {
-        best_score = -DBL_MAX;
+        best_score = -INT_MAX;
 
         for (j = 0; j < 4; j++) {
-            float score1 = get_score_fast(mat, &j, i);
+            int score1 = get_score_fast(mat, &j, i);
 
             if (score1 > best_score)
                 best_score = score1;
 
             for (k = j + 1; k < 4; k++) {
-                float score2 = get_score_fast(mat, &k, i);
+                int score2 = get_score_fast(mat, &k, i);
                 drop = score1 - score2;
                 if (drop < 0)
                     drop = -drop;

@@ -55,17 +55,17 @@ PSSM init_matrix(int order, int length, int alphabet_size){
   pssm->length = length;
   pssm->alphabet_size = alphabet_size;
   
-  pssm->thresholds = malloc((length)*sizeof(float));
+  pssm->thresholds = malloc((length)*sizeof(int));
   if(!pssm->thresholds) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the thresholds.");return NULL;}
 
-  pssm->bi = malloc((length)*sizeof(float));
+  pssm->bi = malloc((length)*sizeof(int));
   if(!pssm->bi) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the best inexact scores.");return NULL;}
  
-  pssm->be = malloc((length)*sizeof(float));
+  pssm->be = malloc((length)*sizeof(int));
   if(!pssm->be) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the best exact scores.");return NULL;}
  
 
-  pssm->saved_scores = malloc((length+1)*sizeof(float));
+  pssm->saved_scores = malloc((length+1)*sizeof(int));
   if(!pssm->saved_scores) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the saved_scores.");return NULL;}
  
   pssm->offsets = malloc((length+1)*sizeof(int));
@@ -73,15 +73,15 @@ PSSM init_matrix(int order, int length, int alphabet_size){
 
   calc_and_set_offsets(pssm,order,length,alphabet_size);
 
-  pssm->scores = malloc(pssm->offsets[length]*sizeof(float));
+  pssm->scores = malloc(pssm->offsets[length]*sizeof(int));
   if(!pssm->scores) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the PSSM.");return NULL;}
-  memset(pssm->scores, 0, pssm->offsets[length]*sizeof(float));
-  memset(pssm->saved_scores,0,(length+1) * sizeof(float));
+  memset(pssm->scores, 0, pssm->offsets[length]*sizeof(int));
+  memset(pssm->saved_scores,0,(length+1) * sizeof(int));
 
 
   // Allocate space for the scores
   //fprintf(stderr, "length:%d pssm->offsets[length]:%d\n", length, pssm->offsets[length]);
-  //memset(pssm->saved_scores, 0, MAXPSSMSIZE+1 * sizeof(float));
+  //memset(pssm->saved_scores, 0, MAXPSSMSIZE+1 * sizeof(int));
 
   return pssm;
 }
@@ -92,7 +92,7 @@ PSSM init_matrix(int order, int length, int alphabet_size){
 // The function also checks if the length is to high and if numbers of
 // scores in '*scores' array matches order, length and alphabet_size
 // (returns NULL is check fails)
-PSSM init_matrix_score(int order, int length, int alphabet_size, float *scores, int nScores, float threshold){
+PSSM init_matrix_score(int order, int length, int alphabet_size, int *scores, int nScores, int threshold){
 
   // Check if longer than max-length of PSSMs
   if(length >= MAXPSSMSIZE) {
@@ -110,24 +110,24 @@ PSSM init_matrix_score(int order, int length, int alphabet_size, float *scores, 
   pssm->alphabet_size = alphabet_size;
   pssm->scores = scores;
  
-  pssm->thresholds = malloc((length)*sizeof(float));
+  pssm->thresholds = malloc((length)*sizeof(int));
   if(!pssm->thresholds) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the thresholds.");return NULL;}
  
-  pssm->bi = malloc((length)*sizeof(float));
+  pssm->bi = malloc((length)*sizeof(int));
   if(!pssm->bi) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the best inexact scores.");return NULL;}
  
-  pssm->be = malloc((length)*sizeof(float));
+  pssm->be = malloc((length)*sizeof(int));
   if(!pssm->be) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the best exact scores.");return NULL;}
 
 
-  pssm->saved_scores = malloc((length+1)*sizeof(float));
+  pssm->saved_scores = malloc((length+1)*sizeof(int));
   if(!pssm->saved_scores) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the saved_scores.");return NULL;}
  
   pssm->offsets = malloc((length+1)*sizeof(int));
   if(!pssm->offsets) {free(pssm);fprintf(stderr,"Couldn't allocate memory for the offsets.");return NULL;}
 
 
-  memset(pssm->saved_scores,0,(length+1) * sizeof(float));
+  memset(pssm->saved_scores,0,(length+1) * sizeof(int));
 
   calc_and_set_offsets(pssm,order,length,alphabet_size);
 
@@ -187,12 +187,12 @@ void calc_and_set_offsets(PSSM pssm, int order, int length, int alphabet_size){
 
 
 // Find max score for position pos
-float maximum_score(PSSM pssm, int pos) {
+int maximum_score(PSSM pssm, int pos) {
 	int key, offset, numScores;
-	float curMax, curScore;
+	int curMax, curScore;
 
 	// For each position 'pos' (starting with the last)
-    curMax = -HUGE_VAL;
+    curMax = -INT_MAX;
     numScores = pssm->offsets[pos+1] - pssm->offsets[pos];
     offset = pssm->offsets[pos];
 
@@ -206,7 +206,7 @@ float maximum_score(PSSM pssm, int pos) {
 
 
 // Function that fills in a given pssms threshold array
-void calc_and_set_thresholds(PSSM pssm, float threshold){
+void calc_and_set_thresholds(PSSM pssm, int threshold){
 	int pos;
 
 	// For each position 'pos' (starting with the last)
@@ -225,10 +225,10 @@ void calc_and_set_thresholds(PSSM pssm, float threshold){
     */
 }
 
-void calculate_reverse_best_inexact(PSSM mat, float *min_drops)
+void calculate_reverse_best_inexact(PSSM mat, int *min_drops)
 {
-    float min_drop = min_drops[0];
-    float best_score = 0.0;
+    int min_drop = min_drops[0];
+    int best_score = 0.0;
     int i;
 
     for (i = 0; i < mat->length; i++) {
@@ -241,7 +241,7 @@ void calculate_reverse_best_inexact(PSSM mat, float *min_drops)
 
 void calculate_reverse_best_exact(PSSM mat)
 {
-    float best_score = 0.0;
+    int best_score = 0.0;
     int i;
 
     for (i = 0; i < mat->length; i++) {
@@ -252,7 +252,7 @@ void calculate_reverse_best_exact(PSSM mat)
 
 
 // Function that fills in a given pssms threshold array
-void calc_and_set_reverse_thresholds(PSSM pssm, int start, int end, float threshold){
+void calc_and_set_reverse_thresholds(PSSM pssm, int start, int end, int threshold){
 	int i;
 
 	// For each position 'pos' (starting with the last)
@@ -307,7 +307,7 @@ void printPSSM(PSSM pssm)
 }
 
 // Function that sets a specific score in a given pssm
-void set_score(PSSM pssm, const unsigned char *letters, int pos, float score){
+void set_score(PSSM pssm, const unsigned char *letters, int pos, int score){
   int index = 0;
   int realorder = min(pos, pssm->order);
 
@@ -323,7 +323,7 @@ void set_score(PSSM pssm, const unsigned char *letters, int pos, float score){
 // ******************************************************************
 
 // Function that returns the score of a given letter in a suffix
-float get_score(PSSM pssm, const unsigned char *base_letter, int pos){
+int get_score(PSSM pssm, const unsigned char *base_letter, int pos){
   int index = 0;
   int realorder = min(pos, pssm->order);
   unsigned char *letters = (unsigned char *)(base_letter-realorder);
@@ -339,13 +339,13 @@ float get_score(PSSM pssm, const unsigned char *base_letter, int pos){
 
 
 // Function that returns the threshold of a given pos in a given pssm
-float get_threshold(PSSM pssm, int pos){
+int get_threshold(PSSM pssm, int pos){
   return pssm->thresholds[pos];
 }
 
 
 // Function that returns the global threshold for a given pssm
-float get_global_threshold(PSSM pssm){
+int get_global_threshold(PSSM pssm){
   return pssm->thresholds[pssm->length - 1];
 }
 
@@ -392,10 +392,10 @@ PSSM ReadPSSMFromFile(const char *filename)
     char alphabet[MAX_LINE_LENGTH];
     char *dAlphabet;
     int alphabet_size=0, pssmLength=0, counter=0;
-    float *scores = (float *) malloc(MAX_LINE_LENGTH * MAXPSSMSIZE * sizeof(float));
-    float *pssmScores;
+    int *scores = (int *) malloc(MAX_LINE_LENGTH * MAXPSSMSIZE * sizeof(int));
+    int *pssmScores;
     int i, j, nScores=0;
-    float maxScore=0, maxRowScore=0;
+    int maxScore=0, maxRowScore=0;
     PSSM pssm;
 
     if (!f) {
@@ -432,7 +432,7 @@ PSSM ReadPSSMFromFile(const char *filename)
         alphabet_size++;
     }
 
-    pssmScores = (float *)malloc(alphabet_size * pssmLength * sizeof(float));
+    pssmScores = (int *)malloc(alphabet_size * pssmLength * sizeof(int));
     dAlphabet = (char *)malloc((alphabet_size+1) * sizeof(char));
 
     memcpy(dAlphabet, alphabet, alphabet_size);
@@ -479,7 +479,7 @@ void addMinWidthToThresholds(PSSM mat, bwt_width_t *width)
 void complement_pssm(PSSM mat) {
     int i;
     ubyte_t j;
-    float temp_score;
+    int temp_score;
     for (i = 0; i < mat->length; i++) {
         for (j = 0; j < 2; j++) {
             ubyte_t comp_base = 3 - j;

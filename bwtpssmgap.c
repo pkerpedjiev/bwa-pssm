@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
+#include <limits.h>
 #include <time.h>
 #include "bwtgap.h"
 #include "bwtpssmgap.h"
@@ -26,6 +27,7 @@ pssm_heap_t *pssm_init_heap(int max_mm, int max_gapo, int max_gape, const gap_op
     gp_heap->entry_list = (pssm_entry_t *)malloc(gp_heap->size * sizeof(pssm_entry_t));
 
     gp_heap->heap = gdsl_interval_heap_alloc ("H", alloc_pssm_entry, free_pssm_entry, compare_pssm_entries);
+    gdsl_interval_heap_set_max_size(gp_heap->heap, gp_heap->size-10);
 
     gdsl_interval_heap_flush( gp_heap->heap);
 
@@ -38,7 +40,6 @@ pssm_heap_t *pssm_init_heap(int max_mm, int max_gapo, int max_gape, const gap_op
     gp_heap->first_empty = &gp_heap->entry_list[2];
     gp_heap->last_empty = &gp_heap->entry_list[gp_heap->size - 1];
     //gp_heap->empty_left = gp_heap->size;
-    gp_heap->num_busy = 0;
 
     gp_heap->first_busy = &gp_heap->entry_list[0];
     gp_heap->last_busy = &gp_heap->entry_list[1];
@@ -71,25 +72,34 @@ static void print_empty(pssm_heap_t *gp_heap)
     fprintf(stderr, "\n");
 }
 
+static void remove_from_empty_list(pssm_heap_t *gp_heap, pssm_entry_t *p)
+{
+    p->prev->next = p->next;
+    p->next->prev = p->prev;
+
+    gp_heap->last_empty->next = p;
+    gp_heap->last_empty = p;
+    gp_heap->empty_left++;
+}
+
 static inline pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
 {
 
     pssm_entry_t *p;
     pssm_entry_t *last_busy = gp_heap->last_busy;
+    /*
+    int count = 1;
 
     //fprintf(stderr, "update_heap: gp_heap->first_empty: %x gp_heap->last_empty: %x\n", gp_heap->first_empty, gp_heap->last_empty);
 
-    /*
     p = gp_heap->first_empty;
     while (p != gp_heap->last_empty) {
         p  = p->next;
         count++;
     }
-    */
 
-    //fprintf(stderr, "count: %d, empty left: %d\n", count, gp_heap->empty_left);
+    fprintf(stderr, "count: %d, empty left: %d\n", count, gp_heap->empty_left);
     //print_empty(gp_heap);
-    /*
     assert(count == gp_heap->empty_left);
     assert(gp_heap->first_empty != gp_heap->last_empty);
     */
@@ -105,16 +115,15 @@ static inline pssm_entry_t *update_heap(pssm_heap_t *gp_heap)
     p->next = last_busy;
     last_busy->prev = p;
 
-    gp_heap->num_busy++;
-
     return p;
 }
 
 static void gap_push(pssm_heap_t *gp_heap, int id, int a, int i, bwtint_t k, bwtint_t l, int n_mm, int n_gapo, int n_gape,
-        int state, int is_diff, const gap_opt_t *opt, float pssm_score, float score_offset)
+        int state, int is_diff, const gap_opt_t *opt, int pssm_score, int score_offset)
 {
     int score;
     pssm_entry_t *p;
+    pssm_entry_t *p1;
     id=0;
 
     assert(gp_heap->empty_left > 0);
@@ -127,42 +136,31 @@ static void gap_push(pssm_heap_t *gp_heap, int id, int a, int i, bwtint_t k, bwt
     p->score_offset = score_offset;
     p->pssm_score = pssm_score;
     if (is_diff) p->last_diff_pos = i;
-    //fprintf(stderr, "inserting score: %f %d dist: %d\n", p->score_offset, (int) (100 * p->score_offset), (int)(&p->score_offset) - (int)(p));
-    //fprintf(stderr, "score: %f &p->score_offset: %x (p): %x p+n: %x\n", *(float *)(((void *)p) + 28), &p->score_offset, p, ((void *)p) + 28);
-    gdsl_interval_heap_insert(gp_heap->heap, (void *)p);
+    //fprintf(stderr, "inserting score: %d\n", score_offset);
+    //fprintf(stderr, "score: %f &p->score_offset: %x (p): %x p+n: %x\n", *(int *)(((void *)p) + 28), &p->score_offset, p, ((void *)p) + 28);
+    //fprintf(stderr, "a - b: %d\n", (int)&p->score_offset - (int)p);
+    p1 = gdsl_interval_heap_insert(gp_heap->heap, (void *)p);
+    //gdsl_raw_heap_dump(p);
+    if (p1 != NULL)
+        remove_from_empty_list(gp_heap, p1);
 }
 
 static void gap_pop(pssm_heap_t *gp_heap, int id, pssm_entry_t *e)
 {
     pssm_entry_t *p = (pssm_entry_t *)gdsl_interval_heap_remove_max (gp_heap->heap);
 
-    //assume p is part of the busy list and is between the first and last
-    p->prev->next = p->next;
-    p->next->prev = p->prev;
-
     memcpy(e, p, sizeof(pssm_entry_t));
-    gp_heap->last_empty->next = p;
-    gp_heap->last_empty = p;
-    gp_heap->empty_left++;
-    gp_heap->num_busy--;
+    //assume p is part of the busy list and is between the first and last
+    //
+    remove_from_empty_list(gp_heap, p);
 }
 
-static float gap_destroy_min(pssm_heap_t *gp_heap) {
+static int gap_destroy_min(pssm_heap_t *gp_heap) {
 
     pssm_entry_t *p = (pssm_entry_t *)gdsl_interval_heap_remove_min (gp_heap->heap);
     //print_empty(gp_heap);
     //fprintf(stderr, "destroy_min: gp_heap->first_empty: %x gp_heap->last_empty: %x p: %x\n", gp_heap->first_empty, gp_heap->last_empty, p);
-
-    //assume p is part of the busy list and is between the first and last
-    p->prev->next = p->next;
-    p->next->prev = p->prev;
-
-    //memcpy(e, p, sizeof(pssm_entry_t));
-    gp_heap->last_empty->next = p;
-    gp_heap->last_empty = p;
-    gp_heap->empty_left++;
-    gp_heap->num_busy--;
-
+    remove_from_empty_list(gp_heap, p);
     //print_empty(gp_heap);
     //fprintf(stderr, "end destroy_min\n");
     return p->score_offset;
@@ -171,6 +169,8 @@ static float gap_destroy_min(pssm_heap_t *gp_heap) {
 static void gap_reset_heap(pssm_heap_t *gp_heap)
 {
     gdsl_interval_heap_flush( gp_heap->heap);
+    //gp_heap->heap = gdsl_interval_heap_alloc ("H", alloc_pssm_entry, free_pssm_entry, compare_pssm_entries);
+    //gdsl_interval_heap_set_max_size(gp_heap->heap, gp_heap->size-10);
 
     if (gp_heap->first_busy->next != gp_heap->last_busy) {
         gp_heap->last_empty->next = gp_heap->first_busy->next;
@@ -213,14 +213,15 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     int best_cnt = 0;
     int j, _j, n_aln, m_aln;
     int visited = 0;
-    float gap_open_penalty = -opt->p_gapo; 
-    float gap_extension_penalty = -opt->p_gape;
-    float deletion_penalty = -opt->p_del;
+    int gap_open_penalty = -(int)(1000 *opt->p_gapo); 
+    int gap_extension_penalty = -(int)(1000 * opt->p_gape);
+    int deletion_penalty = -(int)(1000 * opt->p_del);
     bwt_aln1_t *aln;
     int hit_found = 0;
-    float best_found = -DBL_MAX;
+    int best_found = -INT_MAX;
     int max_entries = 0;
-    float min_score = -DBL_MAX;
+    int min_score = -INT_MAX;
+    int curr_offset;
 
     m_aln = 4; n_aln = 0;
     aln = (bwt_aln1_t*)calloc(m_aln, sizeof(bwt_aln1_t));
@@ -239,22 +240,24 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     //the most entries that can be pushed onto the heap is at most 7:
     //one match, three mismatches, open, extension, deletion
     while (gp_heap->empty_left < (gp_heap->size-2) ) {
-        float score;
+        int score;
         pssm_entry_t e;
         int a, i, m, m_seed = 0, allow_diff, allow_M, tmp;
         bwtint_t k, l, cnt_k[4], cnt_l[4], occ;
-        float curr_score;
-        float curr_threshold;
-        min_score = -DBL_MAX;
+        int curr_score;
+        int curr_threshold;
+        min_score = -INT_MAX;
 
         g_visited++;
         visited++;
 
         //no more space
+        /*
         while (gp_heap->empty_left < 10) {
             //fprintf(stderr, "burning entries\n");
             min_score = gap_destroy_min(gp_heap);
         }
+        */
 
         gap_pop(gp_heap, mat->id, &e); // get the best entry
 
@@ -267,7 +270,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         }
         //fprintf(stderr, "e.score_offset: %f min_score: %f\n", e.score_offset, min_score);
 
-        //fprintf(stderr, "pssm #1 id:%d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%3.3f, **%3.3f**, %3.3f, %3.3f]\n", mat->id, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm,     e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
+        //fprintf(stderr, "pssm #1 id:%d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%4d, **%4d**, %4d, %4d]\n", mat->id, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm,     e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
 
         m = max_diff - (e.n_mm + e.n_gapo);
         if (i == mat->length)
@@ -373,43 +376,43 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             switch (e.state) {
                 case STATE_M: // gap open
                     if (e.n_gapo < opt->max_gapo) { // gap open is allowed
-                        float score = e.score_offset - gap_open_penalty;
+                        curr_offset = e.score_offset - gap_open_penalty;
 
                         // insertion
-                        if (curr_score - gap_open_penalty > curr_threshold & score > min_score)  {
-                                gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_I, 1, opt, curr_score - gap_open_penalty, score);
+                        if (curr_score - gap_open_penalty > curr_threshold & curr_offset > min_score)  {
+                                gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_I, 1, opt, curr_score - gap_open_penalty, curr_offset);
                         }
 
-                        score = e.score_offset - deletion_penalty;
+                        curr_offset = e.score_offset - deletion_penalty;
                             // deletion
-                        if (curr_score - deletion_penalty > curr_threshold && score > min_score) { 
+                        if (curr_score - deletion_penalty > curr_threshold && curr_offset > min_score) { 
                             for (j = 0; j != 4; ++j) {
                                 k = bwt->L2[j] + cnt_k[j] + 1;
                                 l = bwt->L2[j] + cnt_l[j];
                                 if (k <= l) 
-                                    gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_D, 1, opt, curr_score - deletion_penalty, score);
+                                    gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_D, 1, opt, curr_score - deletion_penalty, curr_offset);
                             }
                         }
                     }
                     break;
                 case STATE_I: //extension of an insertion
                     if (e.n_gape < opt->max_gape) { // gap extention is allowed
-                            score = e.score_offset - gap_extension_penalty;
-                            if (curr_score - gap_extension_penalty > curr_threshold && score > min_score) {
-                                gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_I, 1, opt, curr_score - gap_extension_penalty, score);
+                            curr_offset = e.score_offset - gap_extension_penalty;
+                            if (curr_score - gap_extension_penalty > curr_threshold && curr_offset > min_score) {
+                                gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_I, 1, opt, curr_score - gap_extension_penalty, curr_offset);
                         }
                     }
                     break;
                 case STATE_D: //extension of a deletion
                     if (e.n_gape < opt->max_gape) { // gap extention is allowed
                         if (e.n_gape + e.n_gapo < max_diff || occ < opt->max_del_occ) {
-                            score = e.score_offset - gap_extension_penalty;
-                            if (curr_score - gap_extension_penalty > curr_threshold && score > min_score) {
+                            curr_offset = e.score_offset - gap_extension_penalty;
+                            if (curr_score - gap_extension_penalty > curr_threshold && curr_offset > min_score) {
                                 for (j = 0; j != 4; ++j) {
                                     k = bwt->L2[j] + cnt_k[j] + 1;
                                     l = bwt->L2[j] + cnt_l[j];
                                     
-                                    if (k <= l) gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_D, 1, opt, curr_score - gap_extension_penalty, score);
+                                    if (k <= l) gap_push(gp_heap, mat->id, a, i + 1, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_D, 1, opt, curr_score - gap_extension_penalty, curr_offset);
                                 }
                             }
                         }
@@ -420,37 +423,39 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
 
         // mismatches
         if (allow_diff && allow_M) { // mismatch is allowed
-            float some_score = -mat->be[i] + mat->be[i-1] + e.score_offset;
+            int some_score = -mat->be[i] + mat->be[i-1] + e.score_offset;
             for (j = 4; j >= 1; --j) {
                 ubyte_t c = (seq[i] + j) & 3;
                 int is_mm = (j != 4 || seq[i] > 3);
-                float base_score = get_score_fast(mat, &c, i);
-                float score = some_score + base_score;
-                //float score = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
+                int base_score = get_score_fast(mat, &c, i);
+                int curr_offset = some_score + base_score;
+                //int score = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
                 
-                if (curr_score + base_score < curr_threshold && score < min_score)  {
+                if (curr_score + base_score < curr_threshold && curr_offset < min_score)  {
                     continue;
                 }
 
                 k = bwt->L2[c] + cnt_k[c] + 1;
                 l = bwt->L2[c] + cnt_l[c];
                 if (k <= l) {
-                    gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm + is_mm, e.n_gapo, e.n_gape, STATE_M, is_mm, opt, curr_score + base_score, score);
+                    gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm + is_mm, e.n_gapo, e.n_gape, STATE_M, is_mm, opt, curr_score + base_score, curr_offset);
                 }
             }
         } else if (seq[i] < 4) { // try exact match only
             ubyte_t c = seq[i] & 3;
-            float base_score = get_score_fast(mat, &c, i);
-            float score = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
-            if (score > min_score) {
+            int base_score = get_score_fast(mat, &c, i);
+            int curr_offset = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
+            //fprintf(stderr, "base_score: %d\n", base_score);
+            if (curr_offset > min_score) {
 
             k = bwt->L2[c] + cnt_k[c] + 1;
             l = bwt->L2[c] + cnt_l[c];
 
 
-                if (k <= l) gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape, STATE_M, 0, opt, curr_score + base_score, score);
+                if (k <= l) gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape, STATE_M, 0, opt, curr_score + base_score, curr_offset);
             }
         }
+        //fprintf(stderr, "id: %d gp_heap->empty_left: %d gp_heap->size-2: %d\n", mat->id, gp_heap->empty_left , (gp_heap->size - 2));
     }
 
     *_n_aln = n_aln;

@@ -30,8 +30,8 @@ Probs *qual_to_probs(ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
 		float *qualprobs);
 void snp_probs(Probs *P, float *q, float psnp);
 PSSM prob_to_pssm(Probs *P, Probs *mc);
-float highest_scores(PSSM mat);
-float mismatch_threshold(PSSM mat, int M);
+int highest_scores(PSSM mat);
+int mismatch_threshold(PSSM mat, int M);
 Probs *markov_chain(bwtint_t *counts, int alphlen);
 void set_thresholds(PSSM mat, const gap_opt_t *opt);
 /* FUNCTION PROTOTYPES END */
