@@ -74,8 +74,8 @@ void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_ma
 				}
 				rest -= q->l - q->k + 1;
 			} else { // Random sampling (http://code.activestate.com/recipes/272884/). In fact, we never come here. 
-				int j, i, k;
-				for (j = rest, i = q->l - q->k + 1, k = 0; j > 0; --j) {
+				int j, i;
+				for (j = rest, i = q->l - q->k + 1; j > 0; --j) {
 					double p = 1.0, x = drand48();
 					while (x < p) p -= p * j / (i--);
 					s->multi[z].pos = q->l - i;
@@ -96,10 +96,13 @@ void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_ma
 	}
 }
 
+float itf(int score) {
+    return ((float)score) / 1000.;
+}
 
 void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
 {
-	int i, cnt, best;
+	int i, cnt;
     double best_score, total_prob=0.0;
 	if (n_aln == 0) {
 		s->type = BWA_TYPE_NO_MATCH;
@@ -108,18 +111,17 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 	}
 
 	if (set_main) {
-		best = aln[0].score;
         best_score = -DBL_MAX;
 		for (i = cnt = 0; i < n_aln; ++i) {
 			const bwt_aln1_t *p = aln + i;
-            if (p->pssm_score > best_score) {
-                best_score = p->pssm_score;
+            if (itf(p->pssm_score) > best_score) {
+                best_score = itf(p->pssm_score);
 				s->n_mm = p->n_mm; s->n_gapo = p->n_gapo; s->n_gape = p->n_gape;
 				s->score = p->score;
 				s->sa = p->k + (bwtint_t)((p->l - p->k + 1) * drand48());
 			}
 
-            total_prob += (p->l - p->k + 1) * exp2((double)p->pssm_score);
+            total_prob += (p->l - p->k + 1) * exp2((double)itf(p->pssm_score));
 			cnt += p->l - p->k + 1;
 		}
 		s->c1 = 0;
@@ -127,7 +129,7 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
         s->posterior_prob = exp2((double)s->best_pssm_score) / total_prob;
         for (i = 0; i < n_aln; i++) {
             const bwt_aln1_t *p = aln + i;
-            if (p->pssm_score == best_score) 
+            if (itf(p->pssm_score) == best_score) 
                 s->c1 +=  p->l - p->k + 1;
         }
 		s->c2 = cnt - s->c1;
@@ -162,8 +164,8 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 				}
 				rest -= q->l - q->k + 1;
 			} else { // Random sampling (http://code.activestate.com/recipes/272884/). In fact, we never come here. 
-				int j, i, k;
-				for (j = rest, i = q->l - q->k + 1, k = 0; j > 0; --j) {
+				int j, i;
+				for (j = rest, i = q->l - q->k + 1; j > 0; --j) {
 					double p = 1.0, x = drand48();
 					while (x < p) p -= p * j / (i--);
 					s->multi[z].pos = q->l - i;
@@ -220,7 +222,6 @@ int bwa_approx_mapQ(const bwa_seq_t *p, int mm)
 
 int bwa_pssm_approx_mapQ(const bwa_seq_t *p, int mm)
 {
-	int n;
     if (p->posterior_prob == 1.0)
         return 200;
    else 
@@ -572,11 +573,11 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 
 		// print mate coordinate
 		if (mate && mate->type != BWA_TYPE_NO_MATCH) {
-			int m_seqid, m_is_N;
+			int m_seqid;
 			long long isize;
 			am = mate->seQ < p->seQ? mate->seQ : p->seQ; // smaller single-end mapping quality
 			// redundant calculation here, but should not matter too much
-			m_is_N = bns_cnt_ambi(bns, mate->pos, mate->len, &m_seqid);
+			bns_cnt_ambi(bns, mate->pos, mate->len, &m_seqid);
 			err_printf("\t%s\t", (seqid == m_seqid)? "=" : bns->anns[m_seqid].name);
 			isize = (seqid == m_seqid)? pos_5(mate) - pos_5(p) : 0;
 			if (p->type == BWA_TYPE_NO_MATCH) isize = 0;
