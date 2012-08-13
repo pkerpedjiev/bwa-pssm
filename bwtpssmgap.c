@@ -258,6 +258,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     int deletion_penalty = -(int)(1000 * opt->p_del);
     bwt_aln1_t *aln;
     int hit_found = 0;
+    int num_hits_found = 0;
     int best_found = -INT_MAX;
     int max_entries = 0;
     int min_score = -INT_MAX;
@@ -332,10 +333,14 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         hit_found = 0;
         if (i == 0) {
             hit_found = 1;
+            num_hits_found += 1;
             if (i == 0) {
                 if (curr_score > best_found) {
-                    calc_and_set_reverse_thresholds(mat, 1, get_length(mat), curr_score);
-                    addMinWidthToThresholds(mat, width);
+                    if (num_hits_found >= 2) {
+                        //fprintf(stderr, "moving thresholds\n");
+                        calc_and_set_reverse_thresholds(mat, 1, get_length(mat), curr_score);
+                        addMinWidthToThresholds(mat, width);
+                    }
                     best_found = curr_score;
                 }
             }
@@ -343,6 +348,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         else if (curr_score + mat->bi[i-1] < mat->thresholds[0]) {
             if (bwt_match_exact_alt(bwt, i, seq, &k, &l)) {
                 hit_found = 1;
+                num_hits_found += 1;
                 e.score_offset = 0;
                 //e.pssm_score = mat->be[i-1];
             }
