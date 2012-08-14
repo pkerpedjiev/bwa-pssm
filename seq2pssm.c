@@ -649,7 +649,6 @@ Probs *markov_chain(bwtint_t *counts, int alphlen) {
   return mc;
 }
 
-
 void set_thresholds(PSSM mat, const gap_opt_t *opt)
  {
     int i, len;
@@ -684,6 +683,8 @@ void set_thresholds(PSSM mat, const gap_opt_t *opt)
 
         total_best_score += best_score;
     }
+
+    biggest_drop = 15000;
 
     if (opt->pssm_ratio > 0.0)
         calc_and_set_reverse_thresholds(mat, 1, get_length(mat), total_best_score - opt->pssm_ratio * biggest_drop);
