@@ -262,6 +262,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     int best_found = -INT_MAX;
     int max_entries = 0;
     int min_score = -INT_MAX;
+    int desired_mapq = 5000;
     int curr_offset;
 
     m_aln = 4; n_aln = 0;
@@ -307,7 +308,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         a = e.info>>20&1; i = e.info&0xffff; // strand, length
 
        // fprintf(stderr, "best_found: %f mat->be[mat->length-1]-e.score_offset: %f\n", best_found, mat->be[mat->length-1] + e.score_offset);
-        if (!(opt->mode & BWA_MODE_NONSTOP) && best_found > mat->be[mat->length-1] + e.score_offset) {
+        if (!(opt->mode & BWA_MODE_NONSTOP) && best_found > mat->be[mat->length-1] + e.score_offset + desired_mapq) {
             break;
         }
         //fprintf(stderr, "e.score_offset: %f min_score: %f\n", e.score_offset, min_score);
