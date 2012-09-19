@@ -717,6 +717,7 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
 		float sc_mismatch, float sc_wild, int scoretype, float *qualprobs,const gap_opt_t *opt)
  {
 	int nf=0, nr=0;
+    int i, j;
 	Probs *P;
 
 	if (scoretype==0) {
@@ -739,10 +740,28 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
         if (opt->use_error_model) 
             s->mat = error_model_to_pssm(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, opt->error_lookup);
         else {
+            int debug = 1;
             P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
             snp_probs(P, NULL, psnp);
             
+            
             s->mat = prob_to_pssm(P, mc);
+            if (debug)
+                fprintf(stderr, "qual: %s\n", s->rqual);
+
+            for (i = 0; i < s->len; i++) {
+                if (debug)
+                    fprintf(stderr, "%d qual: %d seq: %d || ", i, s->rqual[i] - 33, s->seq[i]);
+
+                for (j = 0; j < 4; j++) {
+                    if (debug)
+                        fprintf(stderr, "%d ", get_score_fast(s->mat, &j, i) / 100);
+                }
+
+                if (debug)
+                    fprintf(stderr, "\n");
+            }
+
             free_probs(P);
         }
 	}

@@ -236,7 +236,8 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
 
                 for (i = 0; i < p->len; i++) {
                     for (j = 0; j < 4; j++) {
-                        p->mat->scores[p->mat->offsets[p->len - i - 1] + j] = seq->scores[j][i];
+                        p->mat->scores[p->mat->offsets[p->len - i - 1] + j] = 1000 * seq->scores[j][i];
+                        //p->mat->scores[p->mat->offsets[p->len - i - 1] + j] = seq->scores[j][i];
                     }
                 }
                 set_thresholds(p->mat, opt);
