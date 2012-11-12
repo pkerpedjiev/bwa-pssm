@@ -341,7 +341,8 @@ float *read_ascii_quality_scores(char *filename) {
  * with it, and each of these will be added to the matrix.
  */
 PSSM error_model_to_pssm(ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
-		const float *error_model) {
+        const float *error_model) {
+
 
     PSSM mat;
     int i, k, q;
@@ -349,14 +350,15 @@ PSSM error_model_to_pssm(ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
     mat = init_matrix(0, len, alphsize+1);
 
     for (i = 0; i < len; i++) {
-		/* The error prob from the qual ascii code */
-		q = (int)qual[i];
-		if (q<0 || q>=128) {
-			fprintf(stderr,"Weird qual: %d\n%s\n%s",q,seq,qual);
-		}
-
+        /* The error prob from the qual ascii code */
+        q = (int)qual[i];
+        if (q<0 || q>=128) {
+            fprintf(stderr,"Weird qual: %d\n%s\n%s",q,seq,qual);
+        }
+        /*fprintf(stderr,"q:  %d      i:  %d \n",q-33,i);*/
         for (k = 0; k < alphsize; k++) {
-            mat->scores[mat->offsets[i] + k] = (int) (1000 * error_model[16 * i + 4 * seq[i] + k]);
+            mat->scores[mat->offsets[i] + k] = (int) (1000 * error_model[16 *
+                    (q - 33) + 4 * seq[i] + k]);
         }
     }
 
