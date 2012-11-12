@@ -734,7 +734,10 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
 	}
 	else {
 		// Remove Ns in beginning of sequence:
-        while (nf < s->len && s->seq[nf]>=alphsize) ++nf;
+        // while (nf < s->len && s->seq[nf]>=alphsize) ++nf;
+        // Causes segfaults, and it doesn't really hurt anything.
+        // Besides, with the BW implementation, the beginning of the
+        // sequence is really the end
 
         P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
         snp_probs(P, NULL, psnp);
