@@ -57,3 +57,27 @@ bwa pssm -N -i2 -o5 -O 0.015 -E 0.015 -D 0.03 -m 2000 index-file pssm-file | bwa
 
 -m <int>    Indicate the size of the heap for storing partial matches. This is equivalent to the number of recursions allowed in
             the search tree. Small values lead to fast running times while large ones lead to more sensitivity.
+
+Error model:
+
+An error model can be introduced in the following format:
+# comments
+# Each line has qual score and base followed by 4 scores
+# for A, C, G and T. Fields separated by blanks
+# Like this
+0 A 0. 0. 0. 0.
+0 C 0. 0. 0. 0.
+:
+3 A 1.3 -2.1 -3.1 -2.0
+3 C -1.9 2.0 -2.1 -1.8
+:
+:
+50 T ...
+
+The first column corresponds to the position. The second to the base for which the scores are entered. The final four columns
+correspond to the score for that row of the pssm. So the 6th column of the example above corresponds to a score of 0. for
+encountering a T, if there was an A present in the read.
+
+If a certain position does not have additional information from the error model, then its PSSM scores are unchanged from
+the values calculated from the quality score.
+
