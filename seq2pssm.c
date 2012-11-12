@@ -340,14 +340,10 @@ float *read_ascii_quality_scores(char *filename) {
  * Each base quality will have a set of scores associated
  * with it, and each of these will be added to the matrix.
  */
-PSSM error_model_to_pssm(ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
+PSSM error_model_to_pssm(PSSM mat, ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
         const float *error_model) {
 
-
-    PSSM mat;
     int i, k, q;
-
-    mat = init_matrix(0, len, alphsize+1);
 
     for (i = 0; i < len; i++) {
         /* The error prob from the qual ascii code */
@@ -738,48 +734,48 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
 	}
 	else {
 		// Remove Ns in beginning of sequence:
-		while (nf < s->len && s->seq[nf]>=alphsize) ++nf;
+        while (nf < s->len && s->seq[nf]>=alphsize) ++nf;
+
+        P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
+        snp_probs(P, NULL, psnp);
+
+        if (opt->parclip) {
+            for (i = 0; i < P->len; i++) {
+                // set the probability of C and T to be equal to their average
+                // this isn't strictly correct, but oh well
+                // float avg = P->p[i*P->alphsize + 1] + P->p[i*P->alphsize + 3];
+                float big_val = P->p[i*P->alphsize + 1] > P->p[i*P->alphsize + 3] ? P->p[i*P->alphsize + 1] : P->p[i*P->alphsize + 3];
+                float small_val = P->p[i*P->alphsize + 1] > P->p[i*P->alphsize + 3] ? P->p[i*P->alphsize + 1] : P->p[i*P->alphsize + 3];
+                // fprintf(stderr, "big_val: %f small_val: %f\n", big_val, small_val);
+
+                P->p[i*P->alphsize + 3] = small_val;
+                P->p[i*P->alphsize + 1] = big_val;
+            }
+        }
+
+        s->mat = prob_to_pssm(P, mc);
+        free_probs(P);
 
         if (opt->use_error_model) 
-            s->mat = error_model_to_pssm(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, opt->error_lookup);
-        else {
-            int debug = 1;
-            P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
-            snp_probs(P, NULL, psnp);
-            
-            if (opt->parclip) {
-                for (i = 0; i < P->len; i++) {
-                    // set the probability of C and T to be equal to their average
-                    // this isn't strictly correct, but oh well
-                    // float avg = P->p[i*P->alphsize + 1] + P->p[i*P->alphsize + 3];
-                    float big_val = P->p[i*P->alphsize + 1] > P->p[i*P->alphsize + 3] ? P->p[i*P->alphsize + 1] : P->p[i*P->alphsize + 3];
-                    float small_val = P->p[i*P->alphsize + 1] > P->p[i*P->alphsize + 3] ? P->p[i*P->alphsize + 1] : P->p[i*P->alphsize + 3];
-                     fprintf(stderr, "big_val: %f small_val: %f\n", big_val, small_val);
-                    
-                    P->p[i*P->alphsize + 3] = small_val;
-                    P->p[i*P->alphsize + 1] = big_val;
-                }
-            }
-            
-            s->mat = prob_to_pssm(P, mc);
+            error_model_to_pssm(s->mat, s->seq+nf, s->rqual+nf, s->len-nf, alphsize, opt->error_lookup);
+
+        /*
+        if (debug)
+            fprintf(stderr, "qual: %s\n", s->rqual);
+
+        for (i = 0; i < s->len; i++) {
             if (debug)
-                fprintf(stderr, "qual: %s\n", s->rqual);
+                fprintf(stderr, "%d qual: %d seq: %d || ", i, s->rqual[i] - 33, s->seq[i]);
 
-            for (i = 0; i < s->len; i++) {
+            for (j = 0; j < 4; j++) {
                 if (debug)
-                    fprintf(stderr, "%d qual: %d seq: %d || ", i, s->rqual[i] - 33, s->seq[i]);
-
-                for (j = 0; j < 4; j++) {
-                    if (debug)
-                        fprintf(stderr, "%d ", get_score_fast(s->mat, &j, i) / 100);
-                }
-
-                if (debug)
-                    fprintf(stderr, "\n");
+                    fprintf(stderr, "%d ", get_score_fast(s->mat, &j, i) / 100);
             }
 
-            free_probs(P);
+            if (debug)
+                fprintf(stderr, "\n");
         }
+        */
 	}
 
     //set_thresholds(s->mat, opt);

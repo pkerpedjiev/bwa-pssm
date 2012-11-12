@@ -474,7 +474,12 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
 
         // mismatches
         if (allow_diff && allow_M) { // mismatch is allowed
-            int some_score = -mat->be[i] + mat->be[i-1] + e.score_offset;
+            int some_score;
+            if (i == 0) {
+                some_score = mat->be[0];
+            } else {
+                some_score = -mat->be[i] + mat->be[i-1] + e.score_offset;
+            }
             for (j = 4; j >= 1; --j) {
                 ubyte_t c = (seq[i] + j) & 3;
                 int is_mm = (j != 4 || seq[i] > 3);
@@ -495,7 +500,13 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         } else if (seq[i] < 4) { // try exact match only
             ubyte_t c = seq[i] & 3;
             int base_score = get_score_fast(mat, &c, i);
-            int curr_offset = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
+            int curr_offset;
+            if (i == 0) {
+                curr_offset = -((mat->be[0]) - base_score) + e.score_offset;
+            } else {
+                curr_offset = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
+            }
+
             //fprintf(stderr, "base_score: %d\n", base_score);
             if (curr_offset > min_score) {
 
