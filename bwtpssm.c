@@ -320,12 +320,16 @@ int bwa_pssm(int argc, char *argv[])
     gap_opt_t *opt;
 
     opt = gap_init_opt();
-    while ((c = getopt(argc, argv, "n:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:G:P:q:f:b012IB:")) >= 0) {
+
+    opt->max_entries = 400;
+    
+    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:G:P:q:f:b012IB:")) >= 0) {
         switch (c) {
             case 'n':
                 if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
                 else opt->max_diff = atoi(optarg), opt->fnr = -1.0;
                 break;
+            case 'p': opt->parclip = 1; break;
             case 'z': opt->pssm_ratio = atof(optarg); opt->pssm_ratio_provided=1; break;
             case 'y': opt->pssm_ratio_discount = atof(optarg); break;
             case 'o': opt->max_gapo = atoi(optarg); break;
@@ -363,6 +367,7 @@ int bwa_pssm(int argc, char *argv[])
         opt->max_gape = opte;
         opt->mode &= ~BWA_MODE_GAPE;
     }
+
 
     if (optind + 2 > argc) {
         fprintf(stderr, "\n");

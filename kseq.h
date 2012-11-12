@@ -189,6 +189,10 @@ typedef struct __kstring_t {
 			}															\
 		}																\
 		if (c == '>' || c == '@') seq->last_char = c; /* the first header char has been read */	\
+        if (!seq->seq.s) { \
+            fprintf(stderr, "Invalid input sequence\n"); \
+            exit(1); \
+        } \
 		seq->seq.s[seq->seq.l] = 0;	/* null terminated string */		\
 		if (c != '+' && c != '&') return seq->seq.l; /* FASTA */					\
         if (c == '+') {                                                 \

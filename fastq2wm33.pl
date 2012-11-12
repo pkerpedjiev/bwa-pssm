@@ -34,6 +34,7 @@ $Ndamage = 6;
 # transversions and transitions have same prob,
 # P(a|g)=A/3 for a different from g
 $ptransition = 0.005/3;
+#$ptransition = 0.;
 $ptransversion = $ptransition;
 
 # Alphabet

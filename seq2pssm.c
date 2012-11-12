@@ -717,7 +717,7 @@ void set_thresholds(PSSM mat, const gap_opt_t *opt)
 int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc_match,
 		float sc_mismatch, float sc_wild, int scoretype, float *qualprobs,const gap_opt_t *opt)
  {
-	int nf=0, nr=0;
+	int nf=0, nr=0, i;
 	Probs *P;
 
 	if (scoretype==0) {
@@ -742,6 +742,20 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
         else {
             P = qual_to_probs(s->seq+nf, s->rqual+nf, s->len-nf, alphsize, qualprobs);
             snp_probs(P, NULL, psnp);
+            
+            if (opt->parclip) {
+                for (i = 0; i < P->len; i++) {
+                    // set the probability of C and T to be equal to their average
+                    // this isn't strictly correct, but oh well
+                    // float avg = P->p[i*P->alphsize + 1] + P->p[i*P->alphsize + 3];
+                    float big_val = P->p[i*P->alphsize + 1] > P->p[i*P->alphsize + 3] ? P->p[i*P->alphsize + 1] : P->p[i*P->alphsize + 3];
+                    float small_val = P->p[i*P->alphsize + 1] > P->p[i*P->alphsize + 3] ? P->p[i*P->alphsize + 1] : P->p[i*P->alphsize + 3];
+                     fprintf(stderr, "big_val: %f small_val: %f\n", big_val, small_val);
+                    
+                    P->p[i*P->alphsize + 3] = small_val;
+                    P->p[i*P->alphsize + 1] = big_val;
+                }
+            }
             
             s->mat = prob_to_pssm(P, mc);
             free_probs(P);
