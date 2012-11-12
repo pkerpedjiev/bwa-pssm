@@ -1,15 +1,15 @@
-PSSM-BWA Readme
+BPM Readme
 
-The usage of PSSM-BWA is very similar to that of bwa. Due to some of the
+The usage of BPM is very similar to that of bwa. Due to some of the
 underlying differences, howerver, the recommended parameters are different.
 
 Installation:
 
-PSSM-BWA requires the gdsl library. It can be downloaded from:
+BPM requires the gdsl library. It can be downloaded from:
 
 http://home.gna.org/gdsl/
 
-Once gdsl is installed, PSSM-BWA can be compiled by simply running 'make'.
+Once gdsl is installed, BPM can be compiled by simply running 'make'.
 
 Usage:
 
@@ -80,4 +80,3 @@ encountering a T, if there was an A present in the read.
 
 If a certain position does not have additional information from the error model, then its PSSM scores are unchanged from
 the values calculated from the quality score.
-
