@@ -203,7 +203,7 @@ void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior) {
 
 void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
 {
-    if (aln->pssm_score > 0.05)
+    if (aln->pssm)
     	bwa_pssm_aln2seq_core(n_aln, aln, s, 1, 0);
     else
     	bwa_aln2seq_core(n_aln, aln, s, 1, 0);
@@ -254,7 +254,7 @@ void bwa_cal_pac_pos_core(const bntseq_t *bns, const bwt_t *bwt, bwa_seq_t *seq,
 	if (seq->type != BWA_TYPE_UNIQUE && seq->type != BWA_TYPE_REPEAT) return;
 	max_diff = fnr > 0.0? bwa_cal_maxdiff(seq->len, BWA_AVG_ERR, fnr) : max_mm;
 
-    if (seq->posterior_prob > 2.0)
+    if (! seq->pssm )
 	    seq->seQ = seq->mapQ = bwa_approx_mapQ(seq, max_diff);
     else
 	    seq->seQ = seq->mapQ = bwa_pssm_approx_mapQ(seq, max_diff);
@@ -262,7 +262,7 @@ void bwa_cal_pac_pos_core(const bntseq_t *bns, const bwt_t *bwt, bwa_seq_t *seq,
 	seq->pos = bwa_sa2pos(bns, bwt, seq->sa, seq->len, &strand);
 	seq->strand = strand;
 
-    if (seq->posterior_prob > 2.0)
+    if (! seq->pssm )
 	    seq->seQ = seq->mapQ = bwa_approx_mapQ(seq, max_diff);
     else
 	    seq->seQ = seq->mapQ = bwa_pssm_approx_mapQ(seq, max_diff);
@@ -613,7 +613,8 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 			}
 			err_printf("\tXM:i:%d\tXO:i:%d\tXG:i:%d", p->n_mm, p->n_gapo, p->n_gapo+p->n_gape);
 			if (p->md) err_printf("\tMD:Z:%s", p->md);
-            printf("\tPS:f:%f\tNB:i:%d\tPP:f:%f",p->best_pssm_score, p->c1, p->posterior_prob);
+            if (p->pssm)
+                printf("\tPS:f:%f\tNB:i:%d\tPP:f:%f",p->best_pssm_score, p->c1, p->posterior_prob);
 			// print multiple hits
 			if (p->n_multi) {
 				err_printf("\tXA:Z:");
@@ -753,10 +754,12 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 				aln = (bwt_aln1_t*)realloc(aln, sizeof(bwt_aln1_t) * m_aln);
 			}
             fread(aln, sizeof(bwt_aln1_t), n_aln, fp_sa);
-            if (aln && aln->pssm_score > 0.05) {
+            if (aln && aln->pssm) {
+                p->pssm = 1;
                 bwa_pssm_aln2seq_core(n_aln, aln, p, 1, n_occ);
                 adjust_pssm_score(bns, p, opt.prior);
             } else {
+                p->pssm = 0;
                 bwa_aln2seq_core(n_aln, aln, p, 1, n_occ);
             }
         }

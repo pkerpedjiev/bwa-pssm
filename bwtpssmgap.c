@@ -399,6 +399,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                 p->k = k; p->l = l;
                 p->score = score;
                 p->pssm_score = curr_score;
+                p->pssm = 1;
                 ++n_aln;
             }
             continue;

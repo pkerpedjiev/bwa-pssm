@@ -40,6 +40,7 @@ typedef struct {
 	bwtint_t k, l;
 	int score;
     float pssm_score;
+    char pssm;  //indicate whether this alignment was made with a PSSM search
 } bwt_aln1_t;
 
 typedef uint16_t bwa_cigar_t;
@@ -88,6 +89,7 @@ typedef struct {
     PSSM revmat;
     double best_pssm_score;
     double posterior_prob;
+    char pssm; //was this sequence evaluted using a pssm
 } bwa_seq_t;
 
 #define BWA_MODE_GAPE       0x01
