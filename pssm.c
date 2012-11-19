@@ -282,13 +282,17 @@ void printThresholds(PSSM pssm)
     }
 }
 
-void print_horizontalPSSM(PSSM pssm)
+void print_horizontalPSSM(PSSM pssm, int n)
 {
     int i;
     ubyte_t j;
+
+    if (n == 0) 
+        n = pssm->length;
+
     for (j = 0; j < 4; j++) {
-        for (i = 0; i < pssm->length; i++)
-            fprintf(stderr, "%d ", (int)get_score_fast(pssm, &j, i));
+        for (i = 0; i < n; i++)
+            fprintf(stderr, "%6d ", (int)get_score_fast(pssm, &j, i));
         fprintf(stderr, "\n");
     }
 }

@@ -321,7 +321,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         m = max_diff - (e.n_mm + e.n_gapo);
         if (i == mat->length)
             curr_score = 0;
-        else
+        else 
             curr_score = mat->be[mat->length-1] - mat->be[i] + e.score_offset;
 
         if (opt->mode & BWA_MODE_GAPE) m -= e.n_gape;
@@ -362,8 +362,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         }
 
         if (hit_found) { // action for found hits
-            if (debug_print)
-                fprintf(stderr, "#hit_found\n");
             int score = aln_score(e.n_mm, e.n_gapo, e.n_gape, opt);
 
             int do_add = 1;
@@ -381,7 +379,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             if (e.n_gapo) { // check whether the hit has been found. this may happen when a gap occurs in a tandem repeat
                 for (j = 0; j != n_aln; ++j)
                     if (aln[j].k == k && aln[j].l == l) {
-                        //fprintf(stderr, "break4\n");
                         break;
                     }
                 if (j < n_aln) do_add = 0;
@@ -477,7 +474,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         if (allow_diff && allow_M) { // mismatch is allowed
             int some_score;
             if (i == 0) {
-                some_score = mat->be[0];
+                some_score = mat->be[0] + e.score_offset;
             } else {
                 some_score = -mat->be[i] + mat->be[i-1] + e.score_offset;
             }

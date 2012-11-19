@@ -56,7 +56,7 @@ void calc_and_set_thresholds(PSSM pssm, int threshold);
 void calc_and_set_reverse_thresholds(PSSM mat, int start, int end, int threshold);
 void set_score(PSSM pssm, const unsigned char *letters, int pos, int score);
 static inline void set_length(PSSM pssm, int length) { pssm->length=length; }
-void print_horizontalPSSM(PSSM pssm);
+void print_horizontalPSSM(PSSM pssm, int n);
 void complement_pssm(PSSM mat);
 
 // Acsessors
