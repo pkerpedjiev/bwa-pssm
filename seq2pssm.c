@@ -241,11 +241,9 @@ void load_error_model(float *table, const char *filename) {
     FILE *fp = fopen(filename, "r");
     char line[1024];
 
-    int index;
+    int index = -1;
     char base;
-    int base_index;
-
-    float scores[4];
+    int base_index = -1;
 
     if (!fp) {
         fprintf(stderr, "Error model file %s not found.\n", filename);
@@ -271,7 +269,7 @@ void load_error_model(float *table, const char *filename) {
                     break;
                 case 1:
                     base = pch[0];
-                    base_index = nst_nt4_table[base];
+                    base_index = nst_nt4_table[(int)base];
                     break;
                 default:
                     total_index = index * 16 + base_index * 4 + counter - 2;
@@ -716,7 +714,7 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
 		float sc_mismatch, float sc_wild, int scoretype, float *qualprobs,const gap_opt_t *opt)
  {
 	int nf=0, nr=0;
-    int i, j;
+    int i;
 	Probs *P;
 
 	if (scoretype==0) {

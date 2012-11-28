@@ -278,7 +278,7 @@ void printThresholds(PSSM pssm)
 {
     int i;
     for (i = 0; i < pssm->length; i++) {
-        fprintf(stderr, "thresholds[%d] = %.2f\n", i, pssm->thresholds[i]);
+        fprintf(stderr, "thresholds[%d] = %d\n", i, pssm->thresholds[i]);
     }
 }
 
@@ -304,7 +304,7 @@ void printPSSM(PSSM pssm)
     for (i = 0; i < pssm->length; i++) {
         fprintf(stderr, "i: %d ", i);
         for (j = 0; j < 4; j++) {
-            fprintf(stderr, " %.2f", get_score_fast(pssm, &j, i));
+            fprintf(stderr, " %df", get_score_fast(pssm, &j, i));
         }
         fprintf(stderr, "\n");
     }
@@ -447,7 +447,7 @@ PSSM ReadPSSMFromFile(const char *filename)
         maxRowScore = -INT_MAX;
         for (j = 0; j < pssmLength; j++) {
             pssmScores[alphabet_size * j + i] = scores[pssmLength * i + j];
-            printf("%f ", pssmScores[alphabet_size * j + i]);
+            printf("%d ", pssmScores[alphabet_size * j + i]);
             nScores++;
         }
         printf("\n");
@@ -463,7 +463,7 @@ PSSM ReadPSSMFromFile(const char *filename)
         maxScore += maxRowScore;
     }
 
-    printf("nScores: %d maxScore: %f\n", nScores, maxScore);
+    printf("nScores: %d maxScore: %d\n", nScores, maxScore);
     pssm = init_matrix_score(0, pssmLength, alphabet_size, pssmScores, nScores, maxScore / 2);
     pssm->alphabet = dAlphabet;
 

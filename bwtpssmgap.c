@@ -59,16 +59,17 @@ void pssm_destroy_heap(pssm_heap_t *gp_heap)
     free(gp_heap);
 }
 
+/*
 static void print_empty(pssm_heap_t *gp_heap)
 {
     pssm_entry_t *p = gp_heap->first_empty;
     fprintf(stderr, "e: ");
 
     while (p != gp_heap->last_empty)  {
-        fprintf(stderr, "%x ", p);
+        fprintf(stderr, "%p ", p);
         p = p->next;
     }
-    fprintf(stderr, "%x ", p);
+    fprintf(stderr, "%p ", p);
 
     fprintf(stderr, "\n");
 }
@@ -97,6 +98,7 @@ static void check_empty_integrity(pssm_heap_t *gp_heap)
     assert(gp_heap->first_empty != gp_heap->last_empty);
 }
 
+*/
 static void remove_from_empty_list(pssm_heap_t *gp_heap, pssm_entry_t *p)
 {
     //fprintf(stderr, "returning to empty list %x\n", p);
@@ -140,7 +142,6 @@ static void gap_push(pssm_heap_t *gp_heap, int id, int a, int i, bwtint_t k, bwt
 {
     int score;
     pssm_entry_t *p;
-    pssm_entry_t *p1;
     id=0;
 
     assert(gp_heap->empty_left > 0);
@@ -195,6 +196,7 @@ static void gap_pop(pssm_heap_t *gp_heap, int id, pssm_entry_t *e)
     remove_from_empty_list(gp_heap, p);
 }
 
+/*
 static int gap_destroy_min(pssm_heap_t *gp_heap) {
 
     pssm_entry_t *p = (pssm_entry_t *)gdsl_interval_heap_remove_min (gp_heap->heap);
@@ -205,6 +207,7 @@ static int gap_destroy_min(pssm_heap_t *gp_heap) {
     //fprintf(stderr, "end destroy_min\n");
     return p->score_offset;
 }
+*/
 
 static void gap_reset_heap(pssm_heap_t *gp_heap)
 {
@@ -260,7 +263,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     int hit_found = 0;
     int num_hits_found = 0;
     int best_found = -INT_MAX;
-    int max_entries = 0;
     int min_score = -INT_MAX;
     int desired_mapq = 5000;
     int curr_offset;
@@ -283,7 +285,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     //the most entries that can be pushed onto the heap is at most 7:
     //one match, three mismatches, open, extension, deletion
     while (gp_heap->empty_left < (gp_heap->size-2) ) {
-        int score;
         pssm_entry_t e;
         int a, i, m, m_seed = 0, allow_diff, allow_M, tmp;
         bwtint_t k, l, cnt_k[4], cnt_l[4], occ;
@@ -428,7 +429,8 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                         curr_offset = e.score_offset - gap_open_penalty;
 
                         // insertion
-                        if (curr_score - gap_open_penalty > curr_threshold & curr_offset > min_score)  {
+                        if ((curr_score - gap_open_penalty > curr_threshold) & 
+                            (curr_offset > min_score))  {
                                 gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo + 1, e.n_gape, STATE_I, 1, opt, curr_score - gap_open_penalty, curr_offset);
                         }
 

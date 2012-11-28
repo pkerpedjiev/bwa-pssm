@@ -154,7 +154,6 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
 	kseq_t *seq = bs->ks;
 	int n_seqs, l, i,j, is_comp = mode&BWA_MODE_COMPREAD, is_64 = mode&BWA_MODE_IL13, l_bc = mode>>24;
 	long n_trimmed = 0, n_tot = 0;
-    int start, end;
 
 	if (l_bc > 15) {
 		fprintf(stderr, "[%s] the maximum barcode length is 15.\n", __func__);
