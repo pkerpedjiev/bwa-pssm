@@ -147,7 +147,7 @@ void bwa_cal_pssm_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *s
 #endif
         //fprintf(stderr, "i: %d tid: %d\n", i, tid);
         p->sa = 0; p->type = BWA_TYPE_NO_MATCH; p->c1 = p->c2 = 0; p->n_aln = 0; p->aln = 0;
-        min_drops = (float *)calloc(p->len+1, sizeof(float));
+        min_drops = (int *)calloc(p->len+1, sizeof(int));
         p->mat->id = i;
 
         for (j = 0; j < p->len; j++) {
@@ -207,7 +207,11 @@ void bwa_cal_pssm_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *s
         p->aln = bwt_match_pssm(bwt, p->len, p->seq, p->mat, w, p->len <= opt->seed_len? 0 : seed_w, &local_opt, &p->n_aln, gp_heap);
         // store the alignment
         free(min_drops); 
-        free(p->name); free(p->seq); free(p->rseq); free(p->qual); 
+        free(p->name); 
+        free(p->seq); 
+        free(p->rseq); 
+        free(p->qual); 
+        free(p->aln);
         free(p->rqual);
         release_matrix(p->mat);
         p->name = 0; p->seq = p->rseq = p->qual = p->rqual = 0;

@@ -5,7 +5,7 @@ CXX=		g++
 #CFLAGS=      -O3 -L/scr/plastilin/pkerp/local/lib
 #CFLAGS = -pg 
 #CFLAGS = -O3 -pg
-CFLAGS =-O3
+CFLAGS =-O3 -Wall
 CXXFLAGS=	$(CFLAGS)
 DFLAGS=		-DHAVE_PTHREAD #-D_FILE_OFFSET_BITS=64
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwtgap.o \
