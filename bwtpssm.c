@@ -211,7 +211,6 @@ void bwa_cal_pssm_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *s
         free(p->seq); 
         free(p->rseq); 
         free(p->qual); 
-        free(p->aln);
         free(p->rqual);
         release_matrix(p->mat);
         p->name = 0; p->seq = p->rseq = p->qual = p->rqual = 0;

@@ -261,7 +261,6 @@ void load_error_model(float *table, const char *filename) {
         pch = strtok(line, " \t");
         while (pch != NULL)
         {
-            int total_index;
             //fprintf(stderr, "counter: %d pch: %s\n", counter, pch);
             switch(counter) {
                 case 0:
@@ -272,7 +271,6 @@ void load_error_model(float *table, const char *filename) {
                     base_index = nst_nt4_table[(int)base];
                     break;
                 default:
-                    total_index = index * 16 + base_index * 4 + counter - 2;
                     //fprintf(stderr, "index: %d base_index: %d counter-2: %d total_index: %d\n", index, base_index, counter-2, total_index);
                     table[index * 16 + base_index * 4 + counter - 2] = atof(pch);
             }
@@ -647,7 +645,7 @@ Probs *markov_chain(bwtint_t *counts, int alphlen) {
 
 void set_thresholds(PSSM mat, const gap_opt_t *opt)
  {
-    int i, len;
+    int i;
     ubyte_t j, k;
     int biggest_drop = -INT_MAX;
     int best_score, total_best_score = 0.0;
@@ -688,7 +686,6 @@ void set_thresholds(PSSM mat, const gap_opt_t *opt)
         calc_and_set_reverse_thresholds(mat, 1, get_length(mat), opt->threshold);
 
     if (seed_best_score > 0 && opt->pssm_seed_ratio > 0) {
-        len = get_length(mat);
         //set_length(mat, opt->seed_len);
         calc_and_set_reverse_thresholds(mat, get_length(mat) - opt->seed_len, get_length(mat), seed_best_score - opt->pssm_seed_ratio * biggest_drop);
         //set_length(mat, len);

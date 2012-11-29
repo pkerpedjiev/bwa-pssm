@@ -277,7 +277,12 @@ void bwa_free_read_seq(int n_seqs, bwa_seq_t *seqs)
 		for (j = 0; j < p->n_multi; ++j)
 			if (p->multi[j].cigar) free(p->multi[j].cigar);
 		free(p->name);
-		free(p->seq); free(p->rseq); free(p->qual); free(p->aln); free(p->md); free(p->multi);
+		free(p->seq); 
+        free(p->rseq); 
+        free(p->qual); 
+        free(p->aln); 
+        free(p->md); 
+        free(p->multi);
 		free(p->cigar);
 	}
 	free(seqs);
