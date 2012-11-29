@@ -311,6 +311,12 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     }
     fprintf(stderr, "g_visited: %lu\n", g_visited);
 
+    free(mc->p);
+    free(mc->powers);
+    free(mc->counts);
+    free(mc);
+    free(qualprobs);
+
     // destroy
     bwt_destroy(bwt);
     //bwt_destroy(bwt[0]);
