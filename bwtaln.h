@@ -107,7 +107,7 @@ typedef struct {
 
 typedef struct {
 	int s_mm, s_gapo, s_gape;
-    float p_gapo, p_gape, p_del;
+    float p_gapo, p_gape, p_del, p_snp;
 	int mode; // bit 24-31 are the barcode length
 	int indel_end_skip, max_del_occ, max_entries;
 	float fnr;

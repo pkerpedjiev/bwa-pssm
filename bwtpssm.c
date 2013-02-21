@@ -332,7 +332,7 @@ int bwa_pssm(int argc, char *argv[])
 
     opt->max_entries = 400;
     
-    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:G:P:q:f:b012IB:")) >= 0) {
+    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:S:G:P:q:f:b012IB:")) >= 0) {
         switch (c) {
             case 'n':
                 if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
@@ -348,6 +348,7 @@ int bwa_pssm(int argc, char *argv[])
             case 'O': opt->p_gapo = log2f(atof(optarg)); break;
             case 'E': opt->p_gape = log2f(atof(optarg)); break;
             case 'D': opt->p_del = log2f(atof(optarg)); break;
+            case 'S': opt->p_snp = atof(optarg); break;
             case 'G': load_error_model(opt->error_lookup, optarg); opt->use_error_model=1; break;
             case 'P': opt->prior = atof(optarg); break;
             case 'd': opt->max_del_occ = atoi(optarg); break;
@@ -392,8 +393,10 @@ int bwa_pssm(int argc, char *argv[])
         fprintf(stderr, "         -m INT    maximum entries in the queue [%d]\n", opt->max_entries);
         fprintf(stderr, "         -t INT    number of threads [%d]\n", opt->n_threads);
         fprintf(stderr, "         -M INT    mismatch penalty [%d]\n", opt->s_mm);
-        fprintf(stderr, "         -O INT    gap open penalty [%d]\n", opt->s_gapo);
-        fprintf(stderr, "         -E INT    gap extension penalty [%d]\n", opt->s_gape);
+        fprintf(stderr, "         -O FLOAT    gap open probability [%f]\n", opt->p_gapo);
+        fprintf(stderr, "         -E FLOAT    gap extension probability [%f]\n", opt->p_gape);
+        fprintf(stderr, "         -D FLOAT    deletion probability [%f]\n", opt->p_del);
+        fprintf(stderr, "         -S FLOAT    snp frequence [%f]\n", opt->p_snp);
         fprintf(stderr, "         -P INT    posterior probability of an alignment [%f]\n", opt->prior);
         fprintf(stderr, "         -G INT    error model table\n");
         fprintf(stderr, "         -R INT    stop searching when there are >INT equally best hits [%d]\n", opt->max_top2);

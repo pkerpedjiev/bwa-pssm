@@ -148,7 +148,6 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
 
 {
 	bwa_seq_t *seqs, *p;
-    double psnp = 0.0;
     double match_score = 1, mismatch_score = -2, wild_score =0;
     int qualscores = 1; // do we use quality scores?
 	kseq_t *seq = bs->ks;
@@ -165,7 +164,8 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
 	while ((l = kseq_read(seq)) >= 0) {
         if (seq->qual.l == 0 && seq->type != KSEQ_TYPE_PSSM) {
             fprintf(stderr, "Need either quality scores or a PSSM as input.\n");
-            exit(1);
+            continue;
+            //exit(1);
         }
 
 		if (is_64 && seq->qual.l)
@@ -227,7 +227,7 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
 
         if (seq->qual.l) {
             if (mc != NULL && qualprobs != NULL) {
-                sequence_to_pssm(p, 4, psnp, mc, match_score, mismatch_score, wild_score, qualscores, qualprobs, opt);
+                sequence_to_pssm(p, 4, opt->p_snp, mc, match_score, mismatch_score, wild_score, qualscores, qualprobs, opt);
             }
         } else {
             if (mc != NULL && qualprobs != NULL) {
