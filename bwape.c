@@ -47,9 +47,12 @@ typedef struct {
 extern int g_log_n[256]; // in bwase.c
 static kh_b128_t *g_hash;
 
+void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior);
 void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi);
+void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi);
 void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s);
 int bwa_approx_mapQ(const bwa_seq_t *p, int mm);
+int bwa_pssm_approx_mapQ(const bwa_seq_t *p, int mm);
 void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, int mode, int max_top2);
 bntseq_t *bwa_open_nt(const char *prefix);
 void bwa_print_sam_SQ(const bntseq_t *bns);
@@ -320,7 +323,13 @@ int bwa_cal_pac_pos_pe(const bntseq_t *bns, const char *prefix, bwt_t *const _bw
 			if (p[j]->type == BWA_TYPE_UNIQUE || p[j]->type == BWA_TYPE_REPEAT) {
 				int strand;
 				int max_diff = gopt->fnr > 0.0? bwa_cal_maxdiff(p[j]->len, BWA_AVG_ERR, gopt->fnr) : gopt->max_diff;
-				p[j]->seQ = p[j]->mapQ = bwa_approx_mapQ(p[j], max_diff);
+                if (d->aln[j].a->pssm) {
+                    p[j]->pssm = 1;
+                    adjust_pssm_score(bns, p[j], gopt->prior);
+				    p[j]->seQ = p[j]->mapQ = bwa_pssm_approx_mapQ(p[j], max_diff);
+                } else {
+				    p[j]->seQ = p[j]->mapQ = bwa_approx_mapQ(p[j], max_diff);
+                }
 				p[j]->pos = bwa_sa2pos(bns, bwt, p[j]->sa, p[j]->len, &strand);
 				p[j]->strand = strand;
 			}
