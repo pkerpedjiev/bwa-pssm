@@ -22,6 +22,11 @@ void bwa_print_sam_PG();
 void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
 {
 	int i, cnt, best;
+	if (n_aln == 0 || !aln) {
+		s->type = BWA_TYPE_NO_MATCH;
+		s->c1 = s->c2 = 0;
+		return;
+	}
 
 	if (set_main) {
 		best = aln[0].score;
@@ -99,6 +104,11 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 {
 	int i, cnt;
     double best_score, total_prob=0.0;
+	if (n_aln == 0 || !aln) {
+		s->type = BWA_TYPE_NO_MATCH;
+		s->c1 = s->c2 = 0;
+		return;
+	}
 
 	if (set_main) {
         best_score = -DBL_MAX;
