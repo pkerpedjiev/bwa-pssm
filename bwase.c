@@ -128,7 +128,9 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
         s->best_pssm_score = best_score;
         s->posterior_prob = exp2((double)s->best_pssm_score) / total_prob;
         for (i = 0; i < n_aln; i++) {
-            const bwt_aln1_t *p = aln + i;
+            bwt_aln1_t *p = aln + i;
+            p->posterior_p = exp2((double)itf(p->pssm_score)) / total_prob;
+
             if (itf(p->pssm_score) == best_score) 
                 s->c1 +=  p->l - p->k + 1;
         }
@@ -543,7 +545,7 @@ static int64_t pos_5(const bwa_seq_t *p)
 
 void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, int mode, int max_top2)
 {
-	int j;
+	int j,i;
 	if (p->type != BWA_TYPE_NO_MATCH || (mate && mate->type != BWA_TYPE_NO_MATCH)) {
 		int seqid, nn, am = 0, flag = p->extra_flag;
 		char XT;
@@ -604,6 +606,13 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 		if (bwa_rg_id) err_printf("\tRG:Z:%s", bwa_rg_id);
 		if (p->bc[0]) err_printf("\tBC:Z:%s", p->bc);
 		if (p->clip_len < p->full_len) err_printf("\tXC:i:%d", p->clip_len);
+        if (p->n_aln > 1) {
+            err_printf("\tXS:A:%f", p->aln[0].posterior_p);
+            for (i = 1; i < p->n_aln; i++) {
+                err_printf(";%f", p->aln[i].posterior_p);
+            }
+            err_printf("\n");
+        }
 		if (p->type != BWA_TYPE_NO_MATCH) {
 			int i;
 			// calculate XT tag
@@ -721,8 +730,7 @@ int bwa_set_rg(const char *s)
 void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_fa, int n_occ)
 {
 	extern bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa);
-	int i, n_seqs, tot_seqs = 0, m_aln;
-	bwt_aln1_t *aln = 0;
+	int i, n_seqs, tot_seqs = 0;
 	bwa_seq_t *seqs;
 	bwa_seqio_t *ks;
 	clock_t t;
@@ -736,7 +744,6 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 	srand48(bns->seed);
 	fp_sa = xopen(fn_sa, "r");
 
-	m_aln = 0;
 	fread(&opt, sizeof(gap_opt_t), 1, fp_sa);
 	if (!(opt.mode & BWA_MODE_COMPREAD)) // in color space; initialize ntpac
 		ntbns = bwa_open_nt(prefix);
@@ -753,20 +760,17 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 		for (i = 0; i < n_seqs; ++i) {
 			bwa_seq_t *p = seqs + i;
             p->posterior_prob = 5.0;
-			int n_aln;
-			fread(&n_aln, 4, 1, fp_sa);
-			if (n_aln > m_aln) {
-				m_aln = n_aln;
-				aln = (bwt_aln1_t*)realloc(aln, sizeof(bwt_aln1_t) * m_aln);
-			}
-            fread(aln, sizeof(bwt_aln1_t), n_aln, fp_sa);
-            if (aln && aln->pssm) {
+			fread(&p->n_aln, 4, 1, fp_sa);
+                //aln = (bwt_aln1_t*)realloc(aln, sizeof(bwt_aln1_t) * m_aln);
+			p->aln = (bwt_aln1_t*)calloc(p->n_aln, sizeof(bwt_aln1_t));
+            fread(p->aln, sizeof(bwt_aln1_t), p->n_aln, fp_sa);
+            if (p->aln && p->aln->pssm) {
                 p->pssm = 1;
-                bwa_pssm_aln2seq_core(n_aln, aln, p, 1, n_occ);
+                bwa_pssm_aln2seq_core(p->n_aln, p->aln, p, 1, n_occ);
                 adjust_pssm_score(bns, p, opt.prior);
             } else {
                 p->pssm = 0;
-                bwa_aln2seq_core(n_aln, aln, p, 1, n_occ);
+                bwa_aln2seq_core(p->n_aln, p->aln, p, 1, n_occ);
             }
         }
 
@@ -792,7 +796,6 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 	if (ntbns) bns_destroy(ntbns);
 	bns_destroy(bns);
 	fclose(fp_sa);
-	free(aln);
 }
 
 int bwa_sai2sam_se(int argc, char *argv[])
