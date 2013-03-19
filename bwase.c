@@ -611,7 +611,6 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
             for (i = 1; i < p->n_aln; i++) {
                 err_printf(";%f", p->aln[i].posterior_p);
             }
-            err_printf("\n");
         }
 		if (p->type != BWA_TYPE_NO_MATCH) {
 			int i;
