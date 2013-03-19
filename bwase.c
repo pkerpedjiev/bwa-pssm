@@ -100,7 +100,7 @@ float itf(int score) {
     return ((float)score) / 1000.;
 }
 
-void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
+void bwa_pssm_aln2seq_core(int n_aln, bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
 {
 	int i, cnt;
     double best_score, total_prob=0.0;
@@ -162,6 +162,7 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 				for (l = q->k; l <= q->l; ++l) {
 					s->multi[z].pos = l;
 					s->multi[z].gap = q->n_gapo + q->n_gape;
+                    s->multi[z].posterior_p = q->posterior_p;
 					s->multi[z++].mm = q->n_mm;
 				}
 				rest -= q->l - q->k + 1;
@@ -172,6 +173,7 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 					while (x < p) p -= p * j / (i--);
 					s->multi[z].pos = q->l - i;
 					s->multi[z].gap = q->n_gapo + q->n_gape;
+                    s->multi[z].posterior_p = q->posterior_p;
 					s->multi[z++].mm = q->n_mm;
 				}
 				rest = 0;
@@ -196,11 +198,16 @@ void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior) {
     double P = prior;
     double p = seq->posterior_prob;
     double new_pp;
+    int i;
 
     new_pp = e / ((e / p) + L * ((1 - P) / P));
     seq->posterior_prob = new_pp;
 
-    //fprintf(stderr, "best_score: %f e: %f L: %f P: %f p: %f new_pp: %f\n", seq->best_pssm_score, e, L, P, p, new_pp);
+    for (i = 0; i < seq->n_multi; i++) {
+        bwt_multi1_t *q = seq->multi + i;
+        p = seq->aln[i].posterior_p;
+        q->posterior_p = e / ((e / p) + L * ((1 - P) / P));
+    }
 }
 
 void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
@@ -545,7 +552,7 @@ static int64_t pos_5(const bwa_seq_t *p)
 
 void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, int mode, int max_top2)
 {
-	int j,i;
+	int j;
 	if (p->type != BWA_TYPE_NO_MATCH || (mate && mate->type != BWA_TYPE_NO_MATCH)) {
 		int seqid, nn, am = 0, flag = p->extra_flag;
 		char XT;
@@ -606,12 +613,6 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 		if (bwa_rg_id) err_printf("\tRG:Z:%s", bwa_rg_id);
 		if (p->bc[0]) err_printf("\tBC:Z:%s", p->bc);
 		if (p->clip_len < p->full_len) err_printf("\tXC:i:%d", p->clip_len);
-        if (p->n_aln > 1) {
-            err_printf("\tXS:A:%f", p->aln[0].posterior_p);
-            for (i = 1; i < p->n_aln; i++) {
-                err_printf(";%f", p->aln[i].posterior_p);
-            }
-        }
 		if (p->type != BWA_TYPE_NO_MATCH) {
 			int i;
 			// calculate XT tag
@@ -645,6 +646,11 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 					} else err_printf("%dM", p->len);
 					err_printf(",%d;", q->gap + q->mm);
 				}
+                err_printf("\tXS:A:");
+				for (i = 0; i < p->n_multi; ++i) {
+                    bwt_multi1_t *q = p->multi + i;
+                    err_printf("%f;", q->posterior_p);
+                }
 			}
 		}
 		putchar('\n');
