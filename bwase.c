@@ -205,12 +205,12 @@ void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior) {
 
     for (i = 0; i < seq->n_multi; i++) {
         bwt_multi1_t *q = seq->multi + i;
-        p = seq->aln[i].posterior_p;
+        p = q->posterior_p;
         q->posterior_p = e / ((e / p) + L * ((1 - P) / P));
     }
 }
 
-void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
+void bwa_aln2seq(int n_aln, bwt_aln1_t *aln, bwa_seq_t *s)
 {
 	if (n_aln == 0 || !aln) {
 		s->type = BWA_TYPE_NO_MATCH;
