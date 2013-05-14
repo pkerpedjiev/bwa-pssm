@@ -100,7 +100,7 @@ float itf(int score) {
     return ((float)score) / 1000.;
 }
 
-void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
+void bwa_pssm_aln2seq_core(int n_aln, bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
 {
 	int i, cnt;
     double best_score, total_prob=0.0;
@@ -128,7 +128,9 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
         s->best_pssm_score = best_score;
         s->posterior_prob = exp2((double)s->best_pssm_score) / total_prob;
         for (i = 0; i < n_aln; i++) {
-            const bwt_aln1_t *p = aln + i;
+            bwt_aln1_t *p = aln + i;
+            p->posterior_p = exp2((double)itf(p->pssm_score)) / total_prob;
+
             if (itf(p->pssm_score) == best_score) 
                 s->c1 +=  p->l - p->k + 1;
         }
@@ -160,6 +162,7 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 				for (l = q->k; l <= q->l; ++l) {
 					s->multi[z].pos = l;
 					s->multi[z].gap = q->n_gapo + q->n_gape;
+                    s->multi[z].posterior_p = q->posterior_p;
 					s->multi[z++].mm = q->n_mm;
 				}
 				rest -= q->l - q->k + 1;
@@ -170,6 +173,7 @@ void bwa_pssm_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int s
 					while (x < p) p -= p * j / (i--);
 					s->multi[z].pos = q->l - i;
 					s->multi[z].gap = q->n_gapo + q->n_gape;
+                    s->multi[z].posterior_p = q->posterior_p;
 					s->multi[z++].mm = q->n_mm;
 				}
 				rest = 0;
@@ -194,14 +198,19 @@ void adjust_pssm_score(const bntseq_t *bns, bwa_seq_t *seq, float prior) {
     double P = prior;
     double p = seq->posterior_prob;
     double new_pp;
+    int i;
 
     new_pp = e / ((e / p) + L * ((1 - P) / P));
     seq->posterior_prob = new_pp;
 
-    //fprintf(stderr, "best_score: %f e: %f L: %f P: %f p: %f new_pp: %f\n", seq->best_pssm_score, e, L, P, p, new_pp);
+    for (i = 0; i < seq->n_multi; i++) {
+        bwt_multi1_t *q = seq->multi + i;
+        p = q->posterior_p;
+        q->posterior_p = e / ((e / p) + L * ((1 - P) / P));
+    }
 }
 
-void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
+void bwa_aln2seq(int n_aln, bwt_aln1_t *aln, bwa_seq_t *s)
 {
 	if (n_aln == 0 || !aln) {
 		s->type = BWA_TYPE_NO_MATCH;
@@ -637,6 +646,11 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 					} else err_printf("%dM", p->len);
 					err_printf(",%d;", q->gap + q->mm);
 				}
+                err_printf("\tXS:A:");
+				for (i = 0; i < p->n_multi; ++i) {
+                    bwt_multi1_t *q = p->multi + i;
+                    err_printf("%f;", q->posterior_p);
+                }
 			}
 		}
 		putchar('\n');
@@ -721,8 +735,7 @@ int bwa_set_rg(const char *s)
 void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_fa, int n_occ)
 {
 	extern bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa);
-	int i, n_seqs, tot_seqs = 0, m_aln;
-	bwt_aln1_t *aln = 0;
+	int i, n_seqs, tot_seqs = 0;
 	bwa_seq_t *seqs;
 	bwa_seqio_t *ks;
 	clock_t t;
@@ -736,7 +749,6 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 	srand48(bns->seed);
 	fp_sa = xopen(fn_sa, "r");
 
-	m_aln = 0;
 	fread(&opt, sizeof(gap_opt_t), 1, fp_sa);
 	if (!(opt.mode & BWA_MODE_COMPREAD)) // in color space; initialize ntpac
 		ntbns = bwa_open_nt(prefix);
@@ -753,20 +765,17 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 		for (i = 0; i < n_seqs; ++i) {
 			bwa_seq_t *p = seqs + i;
             p->posterior_prob = 5.0;
-			int n_aln;
-			fread(&n_aln, 4, 1, fp_sa);
-			if (n_aln > m_aln) {
-				m_aln = n_aln;
-				aln = (bwt_aln1_t*)realloc(aln, sizeof(bwt_aln1_t) * m_aln);
-			}
-            fread(aln, sizeof(bwt_aln1_t), n_aln, fp_sa);
-            if (aln && aln->pssm) {
+			fread(&p->n_aln, 4, 1, fp_sa);
+                //aln = (bwt_aln1_t*)realloc(aln, sizeof(bwt_aln1_t) * m_aln);
+			p->aln = (bwt_aln1_t*)calloc(p->n_aln, sizeof(bwt_aln1_t));
+            fread(p->aln, sizeof(bwt_aln1_t), p->n_aln, fp_sa);
+            if (p->aln && p->aln->pssm) {
                 p->pssm = 1;
-                bwa_pssm_aln2seq_core(n_aln, aln, p, 1, n_occ);
+                bwa_pssm_aln2seq_core(p->n_aln, p->aln, p, 1, n_occ);
                 adjust_pssm_score(bns, p, opt.prior);
             } else {
                 p->pssm = 0;
-                bwa_aln2seq_core(n_aln, aln, p, 1, n_occ);
+                bwa_aln2seq_core(p->n_aln, p->aln, p, 1, n_occ);
             }
         }
 
@@ -792,7 +801,6 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 	if (ntbns) bns_destroy(ntbns);
 	bns_destroy(bns);
 	fclose(fp_sa);
-	free(aln);
 }
 
 int bwa_sai2sam_se(int argc, char *argv[])

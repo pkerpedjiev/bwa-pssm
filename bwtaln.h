@@ -40,6 +40,7 @@ typedef struct {
 	bwtint_t k, l;
 	int score;
     float pssm_score;
+    float posterior_p;
     char pssm;  //indicate whether this alignment was made with a PSSM search
 } bwt_aln1_t;
 
@@ -58,6 +59,7 @@ typedef struct {
 	uint32_t n_cigar:15, gap:8, mm:8, strand:1;
 	bwtint_t pos;
 	bwa_cigar_t *cigar;
+    float posterior_p;
 } bwt_multi1_t;
 
 typedef struct {
