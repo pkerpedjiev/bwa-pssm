@@ -292,7 +292,7 @@ void print_horizontalPSSM(PSSM pssm, int n)
 
     for (j = 0; j < 4; j++) {
         for (i = 0; i < n; i++)
-            fprintf(stderr, "%6d ", (int)get_score_fast(pssm, &j, i));
+            fprintf(stderr, "%.2f ", (int)get_score_fast(pssm, &j, i) / 1000.);
         fprintf(stderr, "\n");
     }
 }

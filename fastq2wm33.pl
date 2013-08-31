@@ -4,14 +4,14 @@
 # IMPORTANT: Set max read length $maxlength
 # IMPORTANT: Set base for qual scores $qbase (33 or 64)
 
-$maxlength=76;
+$maxlength=120;
 
 # Specify quality scores used
 $qbase = 33;   # Base for transforming to ascii
-$qmax = 40;    # Max quality score
+$qmax = 41;    # Max quality score
 
 # Genome base composition
-@Q = ( 0.25, 0.25, 0.25, 0.25 );
+@Q = ( 0.30, 0.20, 0.20, 0.30 );
 
 # Damage
 # Set the probability of a C->T and G->A at any position in the
@@ -21,20 +21,27 @@ $qmax = 40;    # Max quality score
 # twofold per position as the read progresses (Fig. 4, bottom).
 # This rate was reduced to 3.2% at the fifth nucleotide.
 $Ndamage = 6;
-@CT5 = (0.307,0.16,0.067,0.043,0.032,0.024);
-@GA5 = (0.,0.,0.,0.,0.,0.);
+#@CT5 = (0.307,0.16,0.067,0.043,0.032,0.024);
+#@GA5 = (0.,0.,0.,0.,0.,0.);
 
+@CT5 = (0.307,0.16,0.067,0.043,0.032,0.024);
+#@CT5 = (0.,0.,0.,0.,0.,0.);
+@GA5 = (0.,0.,0.,0.,0.,0.);
 # Similar for the 3' end of the read (starting with last base of read)
-@CT3 = (0.,0.,0.,0.,0.,0.);
+
+
+#@CT3 = (0.,0.,0.,0.,0.,0.);
 @GA3 = (0.307,0.16,0.067,0.043,0.032,0.024);
 
+@CT3 = (0.,0.,0.,0.,0.,0.);
+#@GA3 = (0.,0.,0.,0.,0.,0.);
 
 # Mutations
 # If we have an overall mutation frequency A and assume that
 # transversions and transitions have same prob,
 # P(a|g)=A/3 for a different from g
-$ptransition = 0.005/3;
-#$ptransition = 0.;
+#$ptransition = 0.005/3;
+$ptransition = 0.;
 $ptransversion = $ptransition;
 
 # Alphabet
@@ -163,6 +170,7 @@ sub adjusted_scores {
     my $q = $_[3];    # P(g)
 
     my $e = 10.**(-0.1*$qual);
+    #print $qual . "," . $e . "\n";
     $e=0.75 if ($e>0.75);
     my @p = ($e/3,$e/3,$e/3,$e/3);
     $p[$base] = 1.-$e;
@@ -237,46 +245,43 @@ for ($k=0; $k<$Ndamage; ++$k) {
 }
 
 
+$k = -1;
 # Now read in fastq file from stdin and convert to PSSMs
 while (<>) {
     ++$k;
-    $k=0 if (/^@/);
+    #$k=0 if (/^@/);
     print if ($k<2);   # Print ID and called sequence
     if ($k==1) {
-	chop;
-	@seq = split(//,uc($_));
+        chop;
+        @seq = split(//,uc($_));
     }
     if ($k==3) {
-	print "&\n";
-	chop;
-	@qual = split(//,$_);
-	$l = @qual;
-	next if ($l<2*$Ndamage+2);
-	@oline = ("","","","");
-	for ($i=0;$i<$l;++$i) {
-	    if ( $seq[$i] !~ /[ACGT]/) { $seq[$i]="A"; $qual[$i]=chr($qbase); }
-	    $key = $seq[$i] . $qual[$i];
-	    if ($i<$Ndamage) { $key .= $i; }
-	    # Assume NO DAMAGE in full length reads
-	    if ( $l<$maxlength ) {
-		$j = $l-$i-1;
-		if ($j<$Ndamage) { $key .= "-".$j; }
-	    }
+        print "&\n";
+        chop;
+        @qual = split(//,$_);
+        $l = @qual;
+        next if ($l<2*$Ndamage+2);
+        @oline = ("","","","");
+        for ($i=0;$i<$l;++$i) {
+            if ( $seq[$i] !~ /[ACGT]/) { $seq[$i]="A"; $qual[$i]=chr($qbase); }
+            $key = $seq[$i] . $qual[$i];
+            if ($i<$Ndamage) { $key .= $i; }
+            # Assume NO DAMAGE in full length reads
+            if ( $l<$maxlength ) {
+                $j = $l-$i-1;
+                if ($j<$Ndamage) { $key .= "-".$j; }
+            }
 #	    print STDERR "$key $i $l\n";
-	    $r = $scoreHash{$key};
-	    for ($g=0; $g<4; ++$g) { $oline[$g] .= sprintf("%.2f ", $r->[$g]); }
-	}
-	for ($g=0; $g<4; ++$g) {
-	    $oline[$g] =~s/ $/\n/;
-	    print $oline[$g];
-	}
+            $r = $scoreHash{$key};
+            for ($g=0; $g<4; ++$g) { $oline[$g] .= sprintf("%.2f ", $r->[$g]); }
+        }
+        for ($g=0; $g<4; ++$g) {
+            $oline[$g] =~s/ $/\n/;
+            print $oline[$g];
+        }
+        $k = -1;
     }
 }
-
-
-
-
-
 
 exit(0);
 

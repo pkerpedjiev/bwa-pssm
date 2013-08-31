@@ -168,8 +168,10 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
             //exit(1);
         }
 
-		if (is_64 && seq->qual.l)
+        //fprintf(stderr, "is_64: %d\n", is_64);
+		if (is_64 && seq->qual.l) {
 			for (i = 0; i < seq->qual.l; ++i) seq->qual.s[i] -= 31;
+        }
 		if (seq->seq.l <= l_bc) continue; // sequence length equals or smaller than the barcode length
 		p = &seqs[n_seqs++];
 		if (l_bc) { // then trim barcode
@@ -228,6 +230,8 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
         if (seq->qual.l) {
             if (mc != NULL && qualprobs != NULL) {
                 sequence_to_pssm(p, 4, opt->p_snp, mc, match_score, mismatch_score, wild_score, qualscores, qualprobs, opt);
+                //print_horizontalPSSM(p->mat, 0);
+                //exit(0);
             }
         } else {
             if (mc != NULL && qualprobs != NULL) {

@@ -264,8 +264,12 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
     int num_hits_found = 0;
     int best_found = -INT_MAX;
     int min_score = -INT_MAX;
-    int desired_mapq = 5000;
+    //int desired_mapq = 200000;
+    int desired_mapq = opt->desired_qual;
     int curr_offset;
+
+    //fprintf(stderr, "max_diff: %d\n", max_diff);
+    //fprintf(stderr, "desired_mapq: %d\n", desired_mapq);
 
     m_aln = 4; n_aln = 0;
     aln = (bwt_aln1_t*)calloc(m_aln, sizeof(bwt_aln1_t));
@@ -310,6 +314,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
 
        // fprintf(stderr, "best_found: %f mat->be[mat->length-1]-e.score_offset: %f\n", best_found, mat->be[mat->length-1] + e.score_offset);
         if (!(opt->mode & BWA_MODE_NONSTOP) && best_found > mat->be[mat->length-1] + e.score_offset + desired_mapq) {
+            //fprintf(stderr, "breaking best_found: %f\n", best_found);
             break;
         }
         //fprintf(stderr, "e.score_offset: %f min_score: %f\n", e.score_offset, min_score);
@@ -317,6 +322,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         //if (i == 4)
             //fprintf(stderr, "yay");
 
+        int max_entries = 0;
         //fprintf(stderr, "pssm #1 id:%d %d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%6d, **%6d**, %6d, %6d]\n", mat->id, i, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm,     e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
 
         m = max_diff - (e.n_mm + e.n_gapo);

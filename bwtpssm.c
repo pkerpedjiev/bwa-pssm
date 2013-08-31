@@ -332,7 +332,7 @@ int bwa_pssm(int argc, char *argv[])
 
     opt->max_entries = 400;
     
-    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:S:G:P:q:f:b012IB:")) >= 0) {
+    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:S:G:P:q:f:b012IB:Q:")) >= 0) {
         switch (c) {
             case 'n':
                 if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
@@ -370,6 +370,7 @@ int bwa_pssm(int argc, char *argv[])
             case 'I': opt->mode |= BWA_MODE_IL13; break;
             case 'Y': opt->mode |= BWA_MODE_CFY; break;
             case 'B': opt->mode |= atoi(optarg) << 24; break;
+            case 'Q': opt->desired_qual = ((atof(optarg)) / (.00301029995)) ; break;
             default: return 1;
         }
     }

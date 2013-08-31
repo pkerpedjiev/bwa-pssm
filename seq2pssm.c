@@ -488,6 +488,7 @@ PSSM prob_to_pssm(Probs *P, Probs *mc) {
     N = mat->offsets[i+order+1] - mat->offsets[i+order];
     for (j=0; j<N; ++j) {
       scores[j]= (int)(1000 * (log2f(prob[j%(P->alphsize+1)]) - background[j]));
+    //fprintf(stderr, "j: %d prob: %f background[j]: %f score: %f\n", j, log2f(prob[j%(P->alphsize+1)]), background[j], scores[j]);
     }
     /* Pointer to the appropriate probabilities */
     prob += P->alphsize+1;
