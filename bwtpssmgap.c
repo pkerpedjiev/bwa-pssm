@@ -295,27 +295,14 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         g_visited++;
         visited++;
 
-        //no more space
-        /*
-        while (gp_heap->empty_left < 10) {
-            //fprintf(stderr, "burning entries\n");
-            min_score = gap_destroy_min(gp_heap);
-        }
-        */
-
         gap_pop(gp_heap, mat->id, &e); // get the best entry
 
         k = e.k; l = e.l; // SA interval
         a = e.info>>20&1; i = e.info&0xffff; // strand, length
 
-       // fprintf(stderr, "best_found: %f mat->be[mat->length-1]-e.score_offset: %f\n", best_found, mat->be[mat->length-1] + e.score_offset);
         if (!(opt->mode & BWA_MODE_NONSTOP) && best_found > mat->be[mat->length-1] + e.score_offset + desired_mapq) {
             break;
         }
-        //fprintf(stderr, "e.score_offset: %f min_score: %f\n", e.score_offset, min_score);
-        //
-        //if (i == 4)
-            //fprintf(stderr, "yay");
 
         int max_entries = 0;
         //fprintf(stderr, "pssm #1 id:%d %d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%6d, **%6d**, %6d, %6d]\n", mat->id, i, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm,     e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
@@ -343,7 +330,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             if (i == 0) {
                 if (curr_score > best_found) {
                     if (num_hits_found >= 2) {
-                        //fprintf(stderr, "moving thresholds\n");
                         calc_and_set_reverse_thresholds(mat, 1, get_length(mat), curr_score);
                         addMinWidthToThresholds(mat, width);
                     }
@@ -356,7 +342,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                 hit_found = 1;
                 num_hits_found += 1;
                 e.score_offset = 0;
-                //e.pssm_score = mat->be[i-1];
             }
             else {
                 continue; // no hit, skip
@@ -508,7 +493,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                 curr_offset = -((mat->be[i] - mat->be[i-1]) - base_score) + e.score_offset;
             }
 
-            //fprintf(stderr, "base_score: %d\n", base_score);
             if (curr_offset > min_score) {
 
             k = bwt->L2[c] + cnt_k[c] + 1;
@@ -518,7 +502,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                 if (k <= l) gap_push(gp_heap, mat->id, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape, STATE_M, 0, opt, curr_score + base_score, curr_offset);
             }
         }
-        //fprintf(stderr, "id: %d gp_heap->empty_left: %d gp_heap->size-2: %d\n", mat->id, gp_heap->empty_left , (gp_heap->size - 2));
         gap_finish_push(gp_heap);
     }
 
