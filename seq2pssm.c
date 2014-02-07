@@ -337,7 +337,7 @@ float *read_ascii_quality_scores(char *filename) {
  * with it, and each of these will be added to the matrix.
  */
 PSSM error_model_to_pssm(PSSM mat, ubyte_t *seq, ubyte_t *qual, int len, int alphsize,
-        const float *error_model, int fastq_base) {
+        const float *error_model) {
 
     int i, k, q;
 
@@ -755,7 +755,7 @@ int sequence_to_pssm(bwa_seq_t *s, int alphsize, float psnp, Probs *mc, float sc
         free_probs(P);
 
         if (opt->use_error_model) 
-            error_model_to_pssm(s->mat, s->seq+nf, s->rqual+nf, s->len-nf, alphsize, opt->error_lookup, opt->fastq_base);
+            error_model_to_pssm(s->mat, s->seq+nf, s->rqual+nf, s->len-nf, alphsize, opt->error_lookup);
 
         /*
         if (debug)

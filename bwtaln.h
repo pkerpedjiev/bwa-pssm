@@ -128,7 +128,6 @@ typedef struct {
     char pssm_ratio_provided;
     float prior;
     int parclip;
-    int fastq_base;
 } gap_opt_t;
 
 #define BWA_PET_STD   1

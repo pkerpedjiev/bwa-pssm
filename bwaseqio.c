@@ -151,7 +151,7 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
     double match_score = 1, mismatch_score = -2, wild_score =0;
     int qualscores = 1; // do we use quality scores?
 	kseq_t *seq = bs->ks;
-	int n_seqs, l, i,j, is_comp = mode&BWA_MODE_COMPREAD, l_bc = mode>>24;
+	int n_seqs, l, i,j, is_comp = mode&BWA_MODE_COMPREAD, is_64=mode&BWA_MODE_IL13, l_bc = mode>>24;
 	long n_trimmed = 0, n_tot = 0;
 
 	if (l_bc > 15) {
@@ -167,9 +167,8 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
             continue;
             //exit(1);
         }
-
-        if (opt)
-		    for (i = 0; i < seq->qual.l; ++i) seq->qual.s[i] -= (opt->fastq_base - 33);
+        if (is_64 && seq->qual.l)
+            for (i = 0; i < seq->qual.l; ++i) seq->qual.s[i] -= 31;
 		if (seq->seq.l <= l_bc) continue; // sequence length equals or smaller than the barcode length
 		p = &seqs[n_seqs++];
 		if (l_bc) { // then trim barcode

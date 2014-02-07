@@ -332,7 +332,7 @@ int bwa_pssm(int argc, char *argv[])
 
     opt->max_entries = 400;
     
-    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:S:G:P:q:f:F:b012IB:")) >= 0) {
+    while ((c = getopt(argc, argv, "pn:z:y:o:e:i:d:l:k:cLR:m:t:NM:O:E:D:S:G:P:q:f:b012IB:")) >= 0) {
         switch (c) {
             case 'n':
                 if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
@@ -363,12 +363,11 @@ int bwa_pssm(int argc, char *argv[])
             case 'c': opt->mode &= ~BWA_MODE_COMPREAD; break;
             case 'N': opt->mode |= BWA_MODE_NONSTOP; opt->max_top2 = 0x7fffffff; break;
             case 'f': xreopen(optarg, "wb", stdout); break;
-            case 'F': opt->fastq_base=atoi(optarg); break;
             case 'b': opt->mode |= BWA_MODE_BAM; break;
             case '0': opt->mode |= BWA_MODE_BAM_SE; break;
             case '1': opt->mode |= BWA_MODE_BAM_READ1; break;
             case '2': opt->mode |= BWA_MODE_BAM_READ2; break;
-            case 'I': opt->mode |= BWA_MODE_IL13; opt->fastq_base=64; break;
+            case 'I': opt->mode |= BWA_MODE_IL13; break;
             case 'Y': opt->mode |= BWA_MODE_CFY; break;
             case 'B': opt->mode |= atoi(optarg) << 24; break;
             default: return 1;
