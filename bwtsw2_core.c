@@ -8,6 +8,10 @@
 #include "bwt.h"
 #include "kvec.h"
 
+#ifdef USE_MALLOC_WRAPPERS
+#  include "malloc_wrap.h"
+#endif
+
 typedef struct {
 	bwtint_t k, l;
 } qintv_t;
@@ -327,6 +331,7 @@ int bsw2_resolve_duphits(const bntseq_t *bns, const bwt_t *bwt, bwtsw2_t *b, int
 			}
 			if (!compatible) {
 				p->G = 0;
+				if (q->G2 < p->G2) q->G2 = p->G2;
 				break;
 			}
 		}

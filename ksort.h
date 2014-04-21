@@ -58,6 +58,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_MALLOC_WRAPPERS
+#  include "malloc_wrap.h"
+#endif
+
 typedef struct {
 	void *left, *right;
 	int depth;
@@ -72,7 +76,7 @@ typedef struct {
 		int curr, shift;												\
 																		\
 		a2[0] = array;													\
-		a2[1] = temp? temp : (type_t*)malloc(sizeof(type_t) * n);		\
+		a2[1] = temp? temp : (type_t*)malloc(sizeof(type_t) * n);	\
 		for (curr = 0, shift = 0; (1ul<<shift) < n; ++shift) {			\
 			a = a2[curr]; b = a2[1-curr];								\
 			if (shift == 0) {											\
@@ -139,7 +143,7 @@ typedef struct {
 			tmp = *l; *l = l[i]; l[i] = tmp; ks_heapadjust_##name(0, i, l); \
 		}																\
 	}																	\
-	inline void __ks_insertsort_##name(type_t *s, type_t *t)			\
+	static inline void __ks_insertsort_##name(type_t *s, type_t *t)		\
 	{																	\
 		type_t *i, *j, swap_tmp;										\
 		for (i = s + 1; i < t; ++i)										\

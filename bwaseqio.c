@@ -3,10 +3,13 @@
 #include "bwtaln.h"
 #include "utils.h"
 #include "bamlite.h"
-#include "seq2pssm.h"
 
 #include "kseq.h"
-KSEQ_INIT(gzFile, gzread)
+KSEQ_DECLARE(gzFile)
+
+#ifdef USE_MALLOC_WRAPPERS
+#  include "malloc_wrap.h"
+#endif
 
 extern unsigned char nst_nt4_table[256];
 static char bam_nt16_nt4_table[] = { 4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4 };
@@ -27,6 +30,7 @@ bwa_seqio_t *bwa_bam_open(const char *fn, int which)
 	bs->is_bam = 1;
 	bs->which = which;
 	bs->fp = bam_open(fn, "r");
+	if (0 == bs->fp) err_fatal_simple("Couldn't open bam file");
 	h = bam_header_read(bs->fp);
 	bam_header_destroy(h);
 	return bs;
@@ -45,9 +49,10 @@ bwa_seqio_t *bwa_seq_open(const char *fn)
 void bwa_seq_close(bwa_seqio_t *bs)
 {
 	if (bs == 0) return;
-	if (bs->is_bam) bam_close(bs->fp);
-	else {
-		gzclose(bs->ks->f->f);
+	if (bs->is_bam) {
+		if (0 != bam_close(bs->fp)) err_fatal_simple("Error closing bam file");
+	} else {
+		err_gzclose(bs->ks->f->f);
 		kseq_destroy(bs->ks);
 	}
 	free(bs);
@@ -74,16 +79,14 @@ void seq_reverse(int len, ubyte_t *seq, int is_comp)
 
 int bwa_trim_read(int trim_qual, bwa_seq_t *p)
 {
-	int s = 0, l, max = 0, max_l = p->len - 1;
+	int s = 0, l, max = 0, max_l = p->len;
 	if (trim_qual < 1 || p->qual == 0) return 0;
-	for (l = p->len - 1; l >= BWA_MIN_RDLEN - 1; --l) {
+	for (l = p->len - 1; l >= BWA_MIN_RDLEN; --l) {
 		s += trim_qual - (p->qual[l] - 33);
 		if (s < 0) break;
-		if (s > max) {
-			max = s; max_l = l;
-		}
+		if (s > max) max = s, max_l = l;
 	}
-	p->clip_len = p->len = max_l + 1;
+	p->clip_len = p->len = max_l;
 	return p->full_len - p->len;
 }
 
@@ -93,11 +96,12 @@ static bwa_seq_t *bwa_read_bam(bwa_seqio_t *bs, int n_needed, int *n, int is_com
 	int n_seqs, l, i;
 	long n_trimmed = 0, n_tot = 0;
 	bam1_t *b;
+	int res;
 
 	b = bam_init1();
 	n_seqs = 0;
 	seqs = (bwa_seq_t*)calloc(n_needed, sizeof(bwa_seq_t));
-	while (bam_read1(bs->fp, b) >= 0) {
+	while ((res = bam_read1(bs->fp, b)) >= 0) {
 		uint8_t *s, *q;
 		int go = 0;
 		if ((bs->which & 1) && (b->core.flag & BAM_FREAD1)) go = 1;
@@ -129,6 +133,7 @@ static bwa_seq_t *bwa_read_bam(bwa_seqio_t *bs, int n_needed, int *n, int is_com
 		p->name = strdup((const char*)bam1_qname(b));
 		if (n_seqs == n_needed) break;
 	}
+	if (res < 0 && res != -1) err_fatal_simple("Error reading bam file");
 	*n = n_seqs;
 	if (n_seqs && trim_qual >= 1)
 		fprintf(stderr, "[bwa_read_seq] %.1f%% bases are trimmed.\n", 100.0f * n_trimmed/n_tot);
@@ -151,24 +156,26 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
     double match_score = 1, mismatch_score = -2, wild_score =0;
     int qualscores = 1; // do we use quality scores?
 	kseq_t *seq = bs->ks;
-	int n_seqs, l, i,j, is_comp = mode&BWA_MODE_COMPREAD, is_64=mode&BWA_MODE_IL13, l_bc = mode>>24;
+	int n_seqs, l, i,j, is_comp = mode&BWA_MODE_COMPREAD, is_64 = mode&BWA_MODE_IL13, l_bc = mode>>24;
 	long n_trimmed = 0, n_tot = 0;
 
-	if (l_bc > 15) {
-		fprintf(stderr, "[%s] the maximum barcode length is 15.\n", __func__);
+	if (l_bc > BWA_MAX_BCLEN) {
+		fprintf(stderr, "[%s] the maximum barcode length is %d.\n", __func__, BWA_MAX_BCLEN);
 		return 0;
 	}
 	if (bs->is_bam) return bwa_read_bam(bs, n_needed, n, is_comp, trim_qual); // l_bc has no effect for BAM input
 	n_seqs = 0;
 	seqs = (bwa_seq_t*)calloc(n_needed, sizeof(bwa_seq_t));
 	while ((l = kseq_read(seq)) >= 0) {
-        if (seq->qual.l == 0 && seq->type != KSEQ_TYPE_PSSM) {
-            fprintf(stderr, "Need either quality scores or a PSSM as input.\n");
-            continue;
-            //exit(1);
-        }
-        if (is_64 && seq->qual.l)
-            for (i = 0; i < seq->qual.l; ++i) seq->qual.s[i] -= 31;
+		if ((mode & BWA_MODE_CFY) && (seq->comment.l != 0)) {
+			// skip reads that are marked to be filtered by Casava
+			char *s = index(seq->comment.s, ':');
+			if (s && *(++s) == 'Y') {
+				continue;
+			}
+		}
+		if (is_64 && seq->qual.l)
+			for (i = 0; i < seq->qual.l; ++i) seq->qual.s[i] -= 31;
 		if (seq->seq.l <= l_bc) continue; // sequence length equals or smaller than the barcode length
 		p = &seqs[n_seqs++];
 		if (l_bc) { // then trim barcode
@@ -189,8 +196,7 @@ bwa_seq_t *bwa_read_pssm_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, in
 		p->qual = 0;
 		p->full_len = p->clip_len = p->len = l;
 		n_tot += p->full_len;
-		p->seq = (ubyte_t*)calloc(p->len, 1);
-
+		p->seq = (ubyte_t*)calloc(p->full_len, 1);
 		for (i = 0; i != p->full_len; ++i)
 			p->seq[i] = nst_nt4_table[(int)seq->seq.s[i]];
 		if (seq->qual.l) { // copy quality

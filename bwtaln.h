@@ -29,14 +29,20 @@
 #define bns_pac(pac, k) ((pac)[(k)>>2] >> ((~(k)&3)<<1) & 3)
 #endif
 
+#define FROM_M 0
+#define FROM_I 1
+#define FROM_D 2
+#define FROM_S 3
+
+#define SAI_MAGIC "SAI\1"
+
 typedef struct {
 	bwtint_t w;
 	int bid;
-    float min_drop;
 } bwt_width_t;
 
 typedef struct {
-	uint32_t n_mm:8, n_gapo:8, n_gape:8, a:1;
+	uint64_t n_mm:8, n_gapo:8, n_gape:8, score:20, n_ins:10, n_del:10;
 	bwtint_t k, l;
 	int score;
     float pssm_score;
@@ -57,6 +63,7 @@ typedef uint16_t bwa_cigar_t;
 
 typedef struct {
 	uint32_t n_cigar:15, gap:8, mm:8, strand:1;
+	int ref_shift;
 	bwtint_t pos;
 	bwa_cigar_t *cigar;
     float posterior_p;
@@ -78,6 +85,7 @@ typedef struct {
 	// alignment information
 	bwtint_t sa, pos;
 	uint64_t c1:28, c2:28, seQ:8; // number of top1 and top2 hits; single-end mapQ
+	int ref_shift;
 	int n_cigar;
 	bwa_cigar_t *cigar;
 	// for multi-threading only
@@ -105,8 +113,6 @@ typedef struct {
 #define BWA_MODE_BAM_READ2  0x100
 #define BWA_MODE_IL13       0x200
 
-#define ERROR_MODEL_LENGTH  128 // Encompases all the possible quality scores and then some
-
 typedef struct {
 	int s_mm, s_gapo, s_gape;
     float p_gapo, p_gape, p_del, p_snp;
@@ -131,7 +137,6 @@ typedef struct {
 } gap_opt_t;
 
 #define BWA_PET_STD   1
-#define BWA_PET_SOLID 2
 
 typedef struct {
 	int max_isize, force_isize;
@@ -151,7 +156,6 @@ extern "C" {
 	gap_opt_t *gap_init_opt();
 	void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt);
 
-    bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa);
 	bwa_seqio_t *bwa_seq_open(const char *fn);
 	bwa_seqio_t *bwa_bam_open(const char *fn, int which);
 	void bwa_seq_close(bwa_seqio_t *bs);
@@ -163,13 +167,6 @@ extern "C" {
 	void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt);
 
 	void bwa_cs2nt_core(bwa_seq_t *p, bwtint_t l_pac, ubyte_t *pac);
-
-
-	/* rgoya: Temporary clone of aln_path2cigar to accomodate for bwa_cigar_t,
-	__cigar_op and __cigar_len while keeping stdaln stand alone */
-#include "stdaln.h"
-
-	bwa_cigar_t *bwa_aln_path2cigar(const path_t *path, int path_len, int *n_cigar);
 
 #ifdef __cplusplus
 }
