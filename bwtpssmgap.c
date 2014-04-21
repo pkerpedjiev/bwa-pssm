@@ -292,7 +292,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
         int curr_threshold;
         min_score = -INT_MAX;
 
-        g_visited++;
         visited++;
 
         gap_pop(gp_heap, mat->id, &e); // get the best entry
@@ -304,7 +303,6 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
             break;
         }
 
-        int max_entries = 0;
         //fprintf(stderr, "pssm #1 id:%d %d \t[%d][%d,%d,%d,%d,%c]\t[%d,%d,%d]\t[%u,%lu]\t[%lu,%lu]\t%d\t[%6d, **%6d**, %6d, %6d]\n", mat->id, i, max_entries, gp_heap->empty_left, a, i, seq[i], "MID"[e.state], e.n_mm,     e.n_gapo, e.n_gape, width[i-1].bid, width[i-1].w, k, l, e.last_diff_pos, curr_score, e.score_offset, mat->thresholds[i], mat->bi[i]);
 
         m = max_diff - (e.n_mm + e.n_gapo);
@@ -379,7 +377,7 @@ bwt_aln1_t *bwt_match_pssm(bwt_t *const bwt, int len, const ubyte_t *seq, const 
                     memset(aln + m_aln/2, 0, m_aln/2*sizeof(bwt_aln1_t));
                 }
                 p = aln + n_aln;
-                p->n_mm = e.n_mm; p->n_gapo = e.n_gapo; p->n_gape = e.n_gape; p->a = a;
+                p->n_mm = e.n_mm; p->n_gapo = e.n_gapo; p->n_gape = e.n_gape;
                 p->k = k; p->l = l;
                 p->score = score;
                 p->pssm_score = curr_score;

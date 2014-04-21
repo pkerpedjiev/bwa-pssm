@@ -251,7 +251,6 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     qualprobs = phred_ascii_quality_scores(qbase);
 
     // initialization
-    g_visited = 0;
     ks = bwa_open_reads(opt->mode, fn_fa);
 
     { // load BWT
@@ -309,8 +308,6 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
         bwa_free_read_seq(n_seqs, seqs);
         fprintf(stderr, "[bwa_pssm_core] %d sequences have been processed.\n", tot_seqs);
     }
-    fprintf(stderr, "g_visited: %lu\n", g_visited);
-
     free(mc->p);
     free(mc->powers);
     free(mc->counts);

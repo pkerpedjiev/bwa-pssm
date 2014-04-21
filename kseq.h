@@ -179,7 +179,7 @@ typedef struct __kstring_t {
 #define __KSEQ_READ(SCOPE) \
 	SCOPE int kseq_read(kseq_t *seq) \
 	{ \
-		int c; \
+		int c, i, j; \
 		kstream_t *ks = seq->f; \
 		if (seq->last_char == 0) { /* then jump to the next header line */ \
 			while ((c = ks_getc(ks)) != -1 && c != '>' && c != '@'); \
@@ -205,7 +205,7 @@ typedef struct __kstring_t {
 			seq->seq.s = (char*)realloc(seq->seq.s, seq->seq.m); \
 		} \
 		seq->seq.s[seq->seq.l] = 0;	/* null terminated string */ \
-		if (c != '+' && c != &) return seq->seq.l; /* FASTA */ \
+		if (c != '+' && c != '&') return seq->seq.l; /* FASTA */ \
 		if (c == '+') { \
 			if (seq->qual.m < seq->seq.m) {	/* allocate memory for qual in case insufficient */ \
 				seq->qual.m = seq->seq.m; \
@@ -217,7 +217,6 @@ typedef struct __kstring_t {
             for (i = 0; i < 4; i++)                                     \
                 seq->scores[i] = (float *) realloc(seq->scores[i], seq->seq.l* sizeof(float)); \
         }                                                               \
-
 		while ((c = ks_getc(ks)) != -1 && c != '\n'); /* skip the rest of '+' line */ \
 		if (c == -1) return -2; /* error: no quality string */ \
 		if (seq->qual.m > 0) {  \
@@ -243,7 +242,6 @@ typedef struct __kstring_t {
         }                                                               \
         seq->last_char = 0; /* we have not come to the next header line */  \
 		return seq->seq.l;												\
-
 	}
 
 #define __KSEQ_TYPE(type_t)						\

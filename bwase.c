@@ -21,7 +21,7 @@ int g_log_n[256];
 float exp2f(float e);
 double exp2(double e);
 
-void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
+void bwa_aln2seq_core(int n_aln, bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi)
 {
 	int i, cnt, best;
 	if (n_aln == 0) {

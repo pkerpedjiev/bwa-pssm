@@ -2,6 +2,7 @@
 #define BWTALN_H
 
 #include <stdint.h>
+#include <float.h>
 #include "pssm.h"
 #include "bwt.h"
 
@@ -39,12 +40,12 @@
 typedef struct {
 	bwtint_t w;
 	int bid;
+    float min_drop;
 } bwt_width_t;
 
 typedef struct {
 	uint64_t n_mm:8, n_gapo:8, n_gape:8, score:20, n_ins:10, n_del:10;
 	bwtint_t k, l;
-	int score;
     float pssm_score;
     float posterior_p;
     char pssm;  //indicate whether this alignment was made with a PSSM search
@@ -112,6 +113,8 @@ typedef struct {
 #define BWA_MODE_BAM_READ1  0x80
 #define BWA_MODE_BAM_READ2  0x100
 #define BWA_MODE_IL13       0x200
+
+#define ERROR_MODEL_LENGTH  128 // Encompases all the possible quality scores and then some
 
 typedef struct {
 	int s_mm, s_gapo, s_gape;

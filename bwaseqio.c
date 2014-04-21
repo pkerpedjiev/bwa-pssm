@@ -3,6 +3,7 @@
 #include "bwtaln.h"
 #include "utils.h"
 #include "bamlite.h"
+#include "seq2pssm.h"
 
 #include "kseq.h"
 KSEQ_DECLARE(gzFile)

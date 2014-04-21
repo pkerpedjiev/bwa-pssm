@@ -137,7 +137,7 @@ PSSM init_matrix_score(int order, int length, int alphabet_size, int *scores, in
     char errormsg[160];
     sprintf(errormsg, "Mismatch between list size (%i) and size calculated from order, length and alphabet size (%i).",
 	    nScores, pssm->offsets[length]);
-    fprintf(stderr,errormsg);
+    fprintf(stderr, "%s\n", errormsg);
     return NULL;
   }
 
