@@ -154,7 +154,7 @@ PSSM string_to_pssm(ubyte_t *seq, int len, int alphsize, float match, float mism
   }
 
   /* This function makes a matrix */
-  mat = init_matrix_score(0, len, alphsize+1, base, nScores, -0.5);
+  mat = init_matrix_score(0, len, alphsize+1, base, nScores, 0);
 
   return mat;
 }
@@ -528,7 +528,7 @@ int mismatch_threshold(PSSM mat, int M) {
 	int order = mat->order;
 	int scorediff[MAXPSSMSIZE], t, hscore;
 	int *scores = mat->scores;
-	const int infty = 1.e-100;
+	const int infty = 0;
 
 	hscore = 0.;
 	for (i = 0; i < mat->length; ++i)

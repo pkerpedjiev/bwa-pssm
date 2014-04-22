@@ -251,7 +251,6 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     qualprobs = phred_ascii_quality_scores(qbase);
 
     // initialization
-    g_visited = 0;
     ks = bwa_open_reads(opt->mode, fn_fa);
 
     { // load BWT
@@ -264,7 +263,8 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     mc = markov_chain(bwt->L2, 4);
 
     // core loop
-    fwrite(opt, sizeof(gap_opt_t), 1, stdout);
+	err_fwrite(SAI_MAGIC, 1, 4, stdout);
+    err_fwrite(opt, sizeof(gap_opt_t), 1, stdout);
     while ((seqs = bwa_read_pssm_seq(ks, 0x40000, &n_seqs, opt->mode, opt->trim_qual, mc, qualprobs, opt)) != 0) {
         tot_seqs += n_seqs;
         t = clock();
@@ -301,16 +301,14 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
         fprintf(stderr, "[bwa_pssm_core] write to the disk... ");
         for (i = 0; i < n_seqs; ++i) {
             bwa_seq_t *p = seqs + i;
-            fwrite(&p->n_aln, 4, 1, stdout);
-            if (p->n_aln) fwrite(p->aln, sizeof(bwt_aln1_t), p->n_aln, stdout);
+            err_fwrite(&p->n_aln, 4, 1, stdout);
+            if (p->n_aln) err_fwrite(p->aln, sizeof(bwt_aln1_t), p->n_aln, stdout);
         }
         fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
 
         bwa_free_read_seq(n_seqs, seqs);
         fprintf(stderr, "[bwa_pssm_core] %d sequences have been processed.\n", tot_seqs);
     }
-    fprintf(stderr, "g_visited: %lu\n", g_visited);
-
     free(mc->p);
     free(mc->powers);
     free(mc->counts);
@@ -373,6 +371,7 @@ int bwa_pssm(int argc, char *argv[])
             default: return 1;
         }
     }
+
     if (opte > 0) {
         opt->max_gape = opte;
         opt->mode &= ~BWA_MODE_GAPE;
@@ -420,6 +419,8 @@ int bwa_pssm(int argc, char *argv[])
         opt->prior = 0.8;
     }
 
+    /* The maximum number of mismatches is set to 30 when using PSSMs
+     *
     if (opt->fnr > 0.0) {
         int i, k;
         for (i = 17, k = 0; i <= 250; ++i) {
@@ -428,6 +429,8 @@ int bwa_pssm(int argc, char *argv[])
             k = l;
         }
     }
+
+    */
     bwa_pssm_core(argv[optind], argv[optind+1], opt);
     free(opt);
     return 0;

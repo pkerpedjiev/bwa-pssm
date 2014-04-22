@@ -45,7 +45,7 @@ static qsint_t QSufSortChoosePivot(qsint_t* __restrict V, qsint_t* __restrict I,
 							   const qsint_t highestPos, const qsint_t numSortedChar);
 static void QSufSortInsertSortSplit(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t lowestPos, 
 									const qsint_t highestPos, const qsint_t numSortedChar);
-static void QSufSortBucketSort(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t numChar, const qsint_t alphabet_size);
+static void QSufSortBucketSort(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t numChar, const qsint_t alphabetSize);
 static qsint_t QSufSortTransform(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t numChar, const qsint_t largestInputSymbol, 
 							 const qsint_t smallestInputSymbol, const qsint_t maxNewAlphabetSize, qsint_t *numSymbolAggregated);
 
@@ -285,7 +285,7 @@ static void QSufSortInsertSortSplit(qsint_t* __restrict V, qsint_t* __restrict I
    Output: x is V and p is I after the initial sorting stage of the refined
    suffix sorting algorithm.*/
       
-static void QSufSortBucketSort(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t numChar, const qsint_t alphabet_size)
+static void QSufSortBucketSort(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t numChar, const qsint_t alphabetSize)
 {
 	qsint_t i, c;
 	qsint_t d;
@@ -293,7 +293,7 @@ static void QSufSortBucketSort(qsint_t* __restrict V, qsint_t* __restrict I, con
 	qsint_t currentIndex;
 
 	// mark linked list empty
-	for (i=0; i<alphabet_size; i++)
+	for (i=0; i<alphabetSize; i++)
 		I[i] = -1;
 
 	// insert to linked list
@@ -304,7 +304,7 @@ static void QSufSortBucketSort(qsint_t* __restrict V, qsint_t* __restrict I, con
 	}
 
 	currentIndex = numChar;
-	for (i=alphabet_size; i>0; i--) {
+	for (i=alphabetSize; i>0; i--) {
 		c = I[i-1];
 		d = (qsint_t)(V[c]);
 		groupNum = currentIndex;

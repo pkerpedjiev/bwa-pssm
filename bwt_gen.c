@@ -27,7 +27,12 @@
 #include <string.h>
 #include <assert.h>
 #include <stdint.h>
+#include <errno.h>
 #include "QSufSort.h"
+
+#ifdef USE_MALLOC_WRAPPERS
+#  include "malloc_wrap.h"
+#endif
 
 typedef uint64_t bgint_t;
 typedef int64_t sbgint_t;
@@ -235,22 +240,22 @@ static unsigned int ceilLog2(const unsigned int input)
 
 }
 // for ConvertBytePackedToWordPacked()
-static unsigned int BitPerBytePackedChar(const unsigned int alphabet_size)
+static unsigned int BitPerBytePackedChar(const unsigned int alphabetSize)
 {
 	unsigned int bitPerChar;
-	bitPerChar = ceilLog2(alphabet_size);
+	bitPerChar = ceilLog2(alphabetSize);
 	// Return the largest number of bit that does not affect packing efficiency
 	if (BITS_IN_BYTE / (BITS_IN_BYTE / bitPerChar) > bitPerChar)
 		bitPerChar = BITS_IN_BYTE / (BITS_IN_BYTE / bitPerChar);
 	return bitPerChar;
 }
 // for ConvertBytePackedToWordPacked()
-static unsigned int BitPerWordPackedChar(const unsigned int alphabet_size)
+static unsigned int BitPerWordPackedChar(const unsigned int alphabetSize)
 {
-	return ceilLog2(alphabet_size);
+	return ceilLog2(alphabetSize);
 }
 
-static void ConvertBytePackedToWordPacked(const unsigned char *input, unsigned int *output, const unsigned int alphabet_size,
+static void ConvertBytePackedToWordPacked(const unsigned char *input, unsigned int *output, const unsigned int alphabetSize,
 										  const bgint_t textLength)
 {
 	bgint_t i;
@@ -266,8 +271,8 @@ static void ConvertBytePackedToWordPacked(const unsigned char *input, unsigned i
 	
 	unsigned int buffer[BITS_IN_WORD];
 
-	bitPerBytePackedChar = BitPerBytePackedChar(alphabet_size);
-	bitPerWordPackedChar = BitPerWordPackedChar(alphabet_size);
+	bitPerBytePackedChar = BitPerBytePackedChar(alphabetSize);
+	bitPerWordPackedChar = BitPerWordPackedChar(alphabetSize);
 	charPerByte = BITS_IN_BYTE / bitPerBytePackedChar;
 	charPerWord = BITS_IN_WORD / bitPerWordPackedChar;
 
@@ -870,6 +875,7 @@ static void BWTIncBuildRelativeRank(bgint_t* __restrict sortedRank, bgint_t* __r
 	bgint_t i, c;
 	bgint_t s, r;
 	bgint_t lastRank, lastIndex;
+	bgint_t oldInverseSa0RelativeRank = 0;
 	bgint_t freq;
 
 	lastIndex = numItem;
@@ -880,6 +886,7 @@ static void BWTIncBuildRelativeRank(bgint_t* __restrict sortedRank, bgint_t* __r
 	s = seq[numItem];
 	relativeRank[s] = numItem;
 	if (lastRank == oldInverseSa0) {
+		oldInverseSa0RelativeRank = numItem;
 		oldInverseSa0++;	// so that this segment of code is not run again
 		lastRank++;			// so that oldInverseSa0 become a sorted group with 1 item
 	}
@@ -912,6 +919,7 @@ static void BWTIncBuildRelativeRank(bgint_t* __restrict sortedRank, bgint_t* __r
 			lastRank = r;
 			relativeRank[s] = i;
 			if (r == oldInverseSa0) {
+				oldInverseSa0RelativeRank = i;
 				oldInverseSa0++;	// so that this segment of code is not run again
 				lastRank++;			// so that oldInverseSa0 become a sorted group with 1 item
 			}
@@ -941,11 +949,14 @@ static void BWTIncBuildBwt(unsigned int* insertBwt, const bgint_t *relativeRank,
 static void BWTIncMergeBwt(const bgint_t *sortedRank, const unsigned int* oldBwt, const unsigned int *insertBwt,
 						   unsigned int* __restrict mergedBwt, const bgint_t numOldBwt, const bgint_t numInsertBwt)
 {
+	unsigned int bitsInWordMinusBitPerChar;
 	bgint_t leftShift, rightShift;
 	bgint_t o;
 	bgint_t oIndex, iIndex, mIndex;
 	bgint_t mWord, mChar, oWord, oChar;
 	bgint_t numInsert;
+
+	bitsInWordMinusBitPerChar = BITS_IN_WORD - BIT_PER_CHAR;
 
 	oIndex = 0;
 	iIndex = 0;
@@ -1437,13 +1448,29 @@ BWTInc *BWTIncConstructFromPacked(const char *inputFileName, bgint_t initialMaxB
 	packedFile = (FILE*)fopen(inputFileName, "rb");
 
 	if (packedFile == NULL) {
-		fprintf(stderr, "BWTIncConstructFromPacked() : Cannot open inputFileName!\n");
+		fprintf(stderr, "BWTIncConstructFromPacked() : Cannot open %s : %s\n",
+				inputFileName, strerror(errno));
 		exit(1);
 	}
 
-	fseek(packedFile, -1, SEEK_END);
+	if (fseek(packedFile, -1, SEEK_END) != 0) {
+		fprintf(stderr, "BWTIncConstructFromPacked() : Can't seek on %s : %s\n",
+				inputFileName, strerror(errno));
+		exit(1);
+	}
 	packedFileLen = ftell(packedFile);
-	fread(&lastByteLength, sizeof(unsigned char), 1, packedFile);
+	if (packedFileLen == -1) {
+		fprintf(stderr, "BWTIncConstructFromPacked() : Can't ftell on %s : %s\n",
+				inputFileName, strerror(errno));
+		exit(1);
+	}
+	if (fread(&lastByteLength, sizeof(unsigned char), 1, packedFile) != 1) {
+		fprintf(stderr,
+				"BWTIncConstructFromPacked() : Can't read from %s : %s\n",
+				inputFileName,
+				ferror(packedFile)? strerror(errno) : "Unexpected end of file");
+		exit(1);
+	}
 	totalTextLength = TextLengthFromBytePacked(packedFileLen, BIT_PER_CHAR, lastByteLength);
 
 	bwtInc = BWTIncCreate(totalTextLength, initialMaxBuildSize, incMaxBuildSize);
@@ -1457,10 +1484,23 @@ BWTInc *BWTIncConstructFromPacked(const char *inputFileName, bgint_t initialMaxB
 	}
 	textSizeInByte = textToLoad / CHAR_PER_BYTE;	// excluded the odd byte
 
-	fseek(packedFile, -2, SEEK_CUR);
-	fseek(packedFile, -((long)textSizeInByte), SEEK_CUR);
-	fread(bwtInc->textBuffer, sizeof(unsigned char), textSizeInByte + 1, packedFile);
-	fseek(packedFile, -((long)textSizeInByte + 1), SEEK_CUR);
+	if (fseek(packedFile, -((long)textSizeInByte + 2), SEEK_CUR) != 0) {
+		fprintf(stderr, "BWTIncConstructFromPacked() : Can't seek on %s : %s\n",
+				inputFileName, strerror(errno));
+		exit(1);
+	}
+	if (fread(bwtInc->textBuffer, sizeof(unsigned char), textSizeInByte + 1, packedFile) != textSizeInByte + 1) {
+		fprintf(stderr,
+				"BWTIncConstructFromPacked() : Can't read from %s : %s\n",
+				inputFileName,
+				ferror(packedFile)? strerror(errno) : "Unexpected end of file");
+		exit(1);
+	}
+	if (fseek(packedFile, -((long)textSizeInByte + 1), SEEK_CUR) != 0) {
+		fprintf(stderr, "BWTIncConstructFromPacked() : Can't seek on %s : %s\n",
+				inputFileName, strerror(errno));
+		exit(1);
+	}
 
 	ConvertBytePackedToWordPacked(bwtInc->textBuffer, bwtInc->packedText, ALPHABET_SIZE, textToLoad);
 	BWTIncConstruct(bwtInc, textToLoad);
@@ -1473,9 +1513,23 @@ BWTInc *BWTIncConstructFromPacked(const char *inputFileName, bgint_t initialMaxB
 			textToLoad = totalTextLength - processedTextLength;
 		}
 		textSizeInByte = textToLoad / CHAR_PER_BYTE;
-		fseek(packedFile, -((long)textSizeInByte), SEEK_CUR);
-		fread(bwtInc->textBuffer, sizeof(unsigned char), textSizeInByte, packedFile);
-		fseek(packedFile, -((long)textSizeInByte), SEEK_CUR);
+		if (fseek(packedFile, -((long)textSizeInByte), SEEK_CUR) != 0) {
+			fprintf(stderr, "BWTIncConstructFromPacked() : Can't seek on %s : %s\n",
+					inputFileName, strerror(errno));
+			exit(1);
+		}
+		if (fread(bwtInc->textBuffer, sizeof(unsigned char), textSizeInByte, packedFile) != textSizeInByte) {
+			fprintf(stderr,
+				"BWTIncConstructFromPacked() : Can't read from %s : %s\n",
+				inputFileName,
+				ferror(packedFile)? strerror(errno) : "Unexpected end of file");
+			exit(1);
+		}
+		if (fseek(packedFile, -((long)textSizeInByte), SEEK_CUR) != 0) {
+			fprintf(stderr, "BWTIncConstructFromPacked() : Can't seek on %s : %s\n",
+					inputFileName, strerror(errno));
+			exit(1);
+		}
 		ConvertBytePackedToWordPacked(bwtInc->textBuffer, bwtInc->packedText, ALPHABET_SIZE, textToLoad);
 		BWTIncConstruct(bwtInc, textToLoad);
 		processedTextLength += textToLoad;
@@ -1520,15 +1574,28 @@ void BWTSaveBwtCodeAndOcc(const BWT *bwt, const char *bwtFileName, const char *o
 
 	bwtFile = (FILE*)fopen(bwtFileName, "wb");
 	if (bwtFile == NULL) {
-		fprintf(stderr, "BWTSaveBwtCodeAndOcc(): Cannot open BWT code file!\n");
+		fprintf(stderr,
+				"BWTSaveBwtCodeAndOcc(): Cannot open %s for writing: %s\n",
+				bwtFileName, strerror(errno));
 		exit(1);
 	}
 
-	fwrite(&bwt->inverseSa0, sizeof(bgint_t), 1, bwtFile);
-	fwrite(bwt->cumulativeFreq + 1, sizeof(bgint_t), ALPHABET_SIZE, bwtFile);
 	bwtLength = BWTFileSizeInWord(bwt->textLength);
-	fwrite(bwt->bwtCode, sizeof(unsigned int), bwtLength, bwtFile);
-	fclose(bwtFile);
+
+	if (fwrite(&bwt->inverseSa0, sizeof(bgint_t), 1, bwtFile) != 1
+		|| fwrite(bwt->cumulativeFreq + 1,
+				  sizeof(bgint_t), ALPHABET_SIZE, bwtFile) != ALPHABET_SIZE
+		|| fwrite(bwt->bwtCode,
+				  sizeof(unsigned int), bwtLength, bwtFile) != bwtLength) {
+		fprintf(stderr, "BWTSaveBwtCodeAndOcc(): Error writing to %s : %s\n",
+				bwtFileName, strerror(errno));
+		exit(1);
+	}
+	if (fclose(bwtFile) != 0) {
+		fprintf(stderr, "BWTSaveBwtCodeAndOcc(): Error on closing %s : %s\n",
+				bwtFileName, strerror(errno));
+		exit(1);
+	}
 }
 
 void bwt_bwtgen(const char *fn_pac, const char *fn_bwt)
