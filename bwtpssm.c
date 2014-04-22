@@ -263,6 +263,7 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     mc = markov_chain(bwt->L2, 4);
 
     // core loop
+	err_fwrite(SAI_MAGIC, 1, 4, stdout);
     fwrite(opt, sizeof(gap_opt_t), 1, stdout);
     while ((seqs = bwa_read_pssm_seq(ks, 0x40000, &n_seqs, opt->mode, opt->trim_qual, mc, qualprobs, opt)) != 0) {
         tot_seqs += n_seqs;
@@ -418,6 +419,8 @@ int bwa_pssm(int argc, char *argv[])
         opt->prior = 0.8;
     }
 
+    /* The maximum number of mismatches is set to 30 when using PSSMs
+     *
     if (opt->fnr > 0.0) {
         int i, k;
         for (i = 17, k = 0; i <= 250; ++i) {
@@ -426,6 +429,8 @@ int bwa_pssm(int argc, char *argv[])
             k = l;
         }
     }
+
+    */
     bwa_pssm_core(argv[optind], argv[optind+1], opt);
     free(opt);
     return 0;
