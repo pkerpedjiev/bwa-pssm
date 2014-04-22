@@ -42,7 +42,7 @@ PSSM init_matrix(int order, int length, int alphabet_size){
 
   // Check if longer than max-length of PSSMs
   if(length >= MAXPSSMSIZE) {
-    fprintf(stderr,"Matrix is to long.");
+    fprintf(stderr,"Matrix is too long: %d", length);
     return NULL;
   }
 
