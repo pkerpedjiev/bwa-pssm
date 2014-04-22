@@ -264,7 +264,7 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
     // core loop
 	err_fwrite(SAI_MAGIC, 1, 4, stdout);
-    fwrite(opt, sizeof(gap_opt_t), 1, stdout);
+    err_fwrite(opt, sizeof(gap_opt_t), 1, stdout);
     while ((seqs = bwa_read_pssm_seq(ks, 0x40000, &n_seqs, opt->mode, opt->trim_qual, mc, qualprobs, opt)) != 0) {
         tot_seqs += n_seqs;
         t = clock();
@@ -301,8 +301,8 @@ void bwa_pssm_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
         fprintf(stderr, "[bwa_pssm_core] write to the disk... ");
         for (i = 0; i < n_seqs; ++i) {
             bwa_seq_t *p = seqs + i;
-            fwrite(&p->n_aln, 4, 1, stdout);
-            if (p->n_aln) fwrite(p->aln, sizeof(bwt_aln1_t), p->n_aln, stdout);
+            err_fwrite(&p->n_aln, 4, 1, stdout);
+            if (p->n_aln) err_fwrite(p->aln, sizeof(bwt_aln1_t), p->n_aln, stdout);
         }
         fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
 
