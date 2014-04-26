@@ -1,7 +1,10 @@
-##### BWA-PSSM ReadmeA #######
+##### BWA-PSSM Readme #######
 
 The usage of BWA-PSSM is very similar to that of BWA. Due to some of the
 underlying differences, howerver, the recommended parameters are different.
+More information can be found at the official web site:
+
+http://bwa-pssm.binf.ku.dk/
 
 #### Installation: ####
 
