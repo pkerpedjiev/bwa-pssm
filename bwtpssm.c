@@ -396,7 +396,7 @@ int bwa_pssm(int argc, char *argv[])
         fprintf(stderr, "         -E FLOAT    gap extension probability [%f]\n", opt->p_gape);
         fprintf(stderr, "         -D FLOAT    deletion probability [%f]\n", opt->p_del);
         fprintf(stderr, "         -S FLOAT    snp frequence [%f]\n", opt->p_snp);
-        fprintf(stderr, "         -P INT    posterior probability of an alignment [%f]\n", opt->prior);
+        fprintf(stderr, "         -P FLOAT    prior probability of an alignment [%f]\n", opt->prior);
         fprintf(stderr, "         -G INT    error model table\n");
         fprintf(stderr, "         -R INT    stop searching when there are >INT equally best hits [%d]\n", opt->max_top2);
         fprintf(stderr, "         -q INT    quality threshold for read trimming down to %dbp [%d]\n", BWA_MIN_RDLEN, opt->trim_qual);
