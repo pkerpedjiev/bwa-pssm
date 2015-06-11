@@ -15,16 +15,6 @@ from optparse import OptionParser
 # Global parameters
 # ------------------------------------------------------------
 
-# IMPORTANT: Set max read length $maxlength
-# IMPORTANT: Set base for qual scores $qbase (33 or 64)
-
-maxlength=76
-
-# Specify quality scores used
-qbase     = 33         # Base for transforming to ascii
-qbase_chr = chr(qbase) # Convert above to character repr.
-qmax      = 40         # Max quality score
-
 # Genome base composition
 Q = array.array( 'f', [0.25, 0.25, 0.25, 0.25] )
 
@@ -181,7 +171,12 @@ def main():
     num_args= 0
     parser = OptionParser(usage=usage)
 
-    #parser.add_option('-o', '--options', dest='some_option', default='yo', help="Place holder for a real option", type='str')
+    parser.add_option('-q', '--quality-base', dest='quality_base', default=33, 
+                      help="The base quality score (33 or 64, usually)", type='int')
+    parser.add_option('-m', '--quality-max', dest='quality_max', default=40, 
+                      help="The maximum possible quality score", type='int')
+    parser.add_option('-l', '--max-length', dest='max_length', default=76, 
+                      help="The maximum possible length", type='int')
     #parser.add_option('-u', '--useless', dest='uselesss', default=False, action='store_true', help='Another useless option')
 
     (options, args) = parser.parse_args()
@@ -200,9 +195,9 @@ def main():
 
 
     # scoreHash away from ends: No damage; Rate = mutation matrix
-    for i in xrange( qmax ) : 
+    for i in xrange( options.quality_max + 1) : 
         for x in xrange( 4 ) : 
-            key = alph[x] + chr( qbase+i )
+            key = alph[x] + chr( options.quality_base + i )
             scoreHash[key] = adjusted_scores( A,x,i,Q )
 
 
@@ -214,10 +209,10 @@ def main():
         R = damage_matrix( CT5[k], GA5[k], mut )
         A = correction_matrix( R, Q )
 
-        for i in xrange( qmax ) : 
+        for i in xrange( options.quality_max + 1) : 
             for x in xrange( 4 ) : 
 
-                key = alph[x] + chr( qbase+i ) + str(k)
+                key = alph[x] + chr( options.quality_base + i ) + str(k)
                 scoreHash[key] = adjusted_scores( A, x, i, Q )
 
 
@@ -228,10 +223,10 @@ def main():
         R = damage_matrix( CT3[k], GA3[k], mut )
         A = correction_matrix( R,Q )
 
-        for i in xrange( qmax ) : 
+        for i in xrange( options.quality_max + 1 ) : 
             for x in xrange( 4 ) : 
 
-                key = alph[x] + chr( qbase+i ) + '-' + str(k)
+                key = alph[x] + chr( options.quality_base + i ) + '-' + str(k)
                 scoreHash[key] = adjusted_scores(A, x, i, Q)
 
     # ------------------------------------------------------------
@@ -246,7 +241,6 @@ def main():
 
         # New read
         if line[0] == '@' : 
-            print_str = ''
             count = 0
 
         if count < 2 : 
@@ -270,7 +264,7 @@ def main():
                 # Not recognised base
                 if iseq not in 'ACGT' : 
                     iseq = 'A'
-                    iqual = qbase_chr
+                    iqual = chr(options.quality_base)
 
                 key = iseq + iqual
 
@@ -278,7 +272,7 @@ def main():
                 if i < Ndamage : key += str(i)
 
                 # If in end of read
-                elif length < maxlength : 
+                elif length < options.max_length : 
                     j = length-i-1
                     if j < Ndamage : 
                         key += '-'+str(j)
