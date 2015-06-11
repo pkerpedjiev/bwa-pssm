@@ -21,11 +21,18 @@ Once gdsl is installed, BWA-PSSM can be compiled by simply running 'make'.
 For use in ancient DNA sequencing applications, the original fastq file may be converted to a pssm and used
 for alignment. This approach modifies the probabilities of the bases likely to be degraded:
 
-    cat damaged.fastq | ./fastq2wm33.pl > damaged.pssm
+    cat damaged.fastq | python scripts/fastq2wm.py
 
-Note that if the base pairs are base 64, the fastq2wm64.pl script should be used. Within both the 33 and 64 base pair scripts,
-the maximum length of the read needs to be set. Only reads shorter than the maximum read length are modified by the damage matrix.
-It is presumed that maximum length reads have not been degraded and should not be modified.
+Note that if the base pairs are base 64, the -q option should be used:
+
+    cat damaged.fastq | python scripts/fastq2wm.py -q 64
+
+Within both the 33 and 64 base pair scripts, the maximum length of the read
+needs to be set. Only reads shorter than the maximum read length are modified
+by the damage matrix.  It is presumed that maximum length reads have not been
+degraded and should not be modified.
+
+    cat damaged.fastq | python scripts/fastq2wm.py --max-length 76
 
 **Low quality data**
 
